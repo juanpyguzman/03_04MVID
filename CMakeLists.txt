@@ -14,20 +14,27 @@ include(cmake/compiler.cmake)
 # Engine Library
 #****************************************************
 #Engine Source Files
+
 set(ENGINE_SRC_FILES
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/deps.cpp
-	${CMAKE_CURRENT_LIST_DIR}/src/engine/shader.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/engine/shader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/texture.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/window.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/engine/quad.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/include/engine/geometry.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/include/engine/quad.hpp
-	${CMAKE_CURRENT_LIST_DIR}/include/engine/input.hpp
-	${CMAKE_CURRENT_LIST_DIR}/include/engine/shader.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/include/engine/texture.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/include/engine/window.hpp)
+    ${CMAKE_CURRENT_LIST_DIR}/src/engine/geometry/geometry.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/engine/geometry/quad.cpp)
 
-add_library(EngineLib STATIC ${ENGINE_SRC_FILES} ${DEPS_SRC_FILES_COMMON})
+set(ENGINE_HEADER_FILES
+    ${CMAKE_CURRENT_LIST_DIR}/include/engine/input.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/include/engine/shader.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/include/engine/texture.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/include/engine/window.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/include/engine/geometry/geometry.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/include/engine/geometry/quad.hpp)
+
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src/engine/ PREFIX "Source Files" FILES ${ENGINE_SRC_FILES})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/engine PREFIX "Header Files" FILES ${ENGINE_HEADER_FILES})
+
+add_library(EngineLib STATIC ${ENGINE_SRC_FILES} ${ENGINE_HEADER_FILES} ${DEPS_SRC_FILES_COMMON})
 
 target_include_directories(EngineLib PRIVATE ${INCLUDE_PATHS})
 target_compile_definitions(EngineLib PRIVATE -D_GLFW_USE_OPENGL=1)
