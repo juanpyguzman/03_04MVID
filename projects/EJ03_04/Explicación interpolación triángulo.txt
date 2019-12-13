@@ -1,0 +1,7 @@
+Al usar los vértices como vector del color hay que tener en cuenta lo siguiente:
+1. Que el punto (0,0,0), el centro del triángulo, pasado a color, determina el negro del centro del triángulo.
+2. Que el vértice derecho (0.5, -0.5, 0) pasado a color determina un color de 0.5 en rojo, 0 en verde (ya que no puede haber colores negativos) y 0 en azul (0 en coordenada Z)
+3. Que el vértice superior (0, 0.5, 0) pasado a color determina un color de 0.5 verde, y 0 de rojo y azul.
+4. Que el vértice izquierdo (-0.5, -0.5, 0) pasado a color determina también un color negro, pues los negativos se quedarán en 0 y el azul estaría determinado por el 0 de la coordenada Z.
+
+De esta manera tenemos una gran superficie negra desde el vértice inferior izquierdo hasta el centro del triángulo, y desde el centro del triángulo hacia los otros dos vértices se produce una interpolación lineal de negro a verde (vértice superior) y de negro a rojo (vértice derecho).
