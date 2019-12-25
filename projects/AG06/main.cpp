@@ -8,6 +8,7 @@
 #include "engine/shader.hpp"
 #include "engine/texture.hpp"
 #include "engine/window.hpp"
+#include "engine/geometry/sphere.hpp"
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float lastFrame = 0.0f;
@@ -88,7 +89,8 @@ int main(int, char* []) {
     glClearColor(0.0f, 0.3f, 0.6f, 1.0f);
 
     const Shader shader("../projects/AG06/vertex.vs", "../projects/AG06/fragment.fs");
-    const Cube cube(1.0f);
+    //const Cube cube(1.0f);
+    const Sphere sphere(1.0f, 50, 50);
 
     Texture tex("../assets/textures/blue_blocks.jpg", Texture::Format::RGB);
 
@@ -105,7 +107,7 @@ int main(int, char* []) {
         lastFrame = currentFrame;
 
         handleInput(deltaTime);
-        render(cube, shader, tex);
+        render(sphere, shader, tex);
         window->frame();
     }
 
