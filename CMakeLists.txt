@@ -24,7 +24,8 @@ set(ENGINE_SRC_FILES
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/geometry/cube.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/geometry/geometry.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/geometry/quad.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/engine/geometry/sphere.cpp)
+    ${CMAKE_CURRENT_LIST_DIR}/src/engine/geometry/sphere.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/engine/geometry/teapot.cpp)
 
 set(ENGINE_HEADER_FILES
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/camera.hpp
@@ -35,7 +36,9 @@ set(ENGINE_HEADER_FILES
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/geometry/cube.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/geometry/geometry.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/geometry/quad.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/include/engine/geometry/sphere.hpp)
+    ${CMAKE_CURRENT_LIST_DIR}/include/engine/geometry/sphere.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/include/engine/geometry/teapot.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/include/engine/geometry/teapotdata.hpp)
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src/engine/ PREFIX "Source Files" FILES ${ENGINE_SRC_FILES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/engine PREFIX "Header Files" FILES ${ENGINE_HEADER_FILES})
@@ -54,7 +57,7 @@ configure_compiler(EngineLib)
 #****************************************************
 # List of projects
 set(PROJECT_LIST AG01 AG02 AG03 AG04 AG05 AG06 AG07 AG08_01 AG08_02
-    AG09_01 AG09_02 AG09_03 AG09_04 AG09_05 AG10 AG11_01 AG11_02 AG11_03 AG12 AG13 AG14
+    AG09_01 AG09_02 AG09_03 AG09_04 AG10 AG11_01 AG11_02 AG11_03 AG12 AG13 AG14
     EJ02_01 EJ02_02 EJ02_03 EJ02_04 EJ02_05 EJ02_06
     EJ03_01 EJ03_02 EJ03_03 EJ03_04
     EJ04_01 EJ04_02 EJ04_03 EJ04_04 EJ04_05
