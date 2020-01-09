@@ -18,6 +18,8 @@ include(cmake/compiler.cmake)
 set(ENGINE_SRC_FILES
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/camera.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/deps.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/engine/mesh.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/engine/model.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/shader.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/texture.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/window.cpp
@@ -30,6 +32,8 @@ set(ENGINE_SRC_FILES
 set(ENGINE_HEADER_FILES
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/camera.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/input.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/include/engine/mesh.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/include/engine/model.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/shader.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/texture.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/window.hpp
@@ -46,11 +50,19 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/engine PREFIX "Header File
 add_library(EngineLib STATIC ${ENGINE_SRC_FILES} ${ENGINE_HEADER_FILES} ${DEPS_SRC_FILES_COMMON})
 
 target_include_directories(EngineLib PRIVATE ${INCLUDE_PATHS})
+target_link_libraries(EngineLib PRIVATE
+    debug ${CMAKE_CURRENT_LIST_DIR}/libs/Debug/assimp-vc142-mt.lib
+    optimized ${CMAKE_CURRENT_LIST_DIR}/libs/Release/assimp-vc142-mt.lib)
 target_compile_definitions(EngineLib PRIVATE -D_GLFW_USE_OPENGL=1)
 target_compile_features(EngineLib PRIVATE cxx_std_14)
 
 configure_platform(EngineLib)
 configure_compiler(EngineLib)
+
+add_custom_command(TARGET EngineLib POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_LIST_DIR}/libs/$<CONFIGURATION>/assimp-vc142-mt.dll"
+    $<TARGET_FILE_DIR:EngineLib>)
 
 #****************************************************
 # Projects
