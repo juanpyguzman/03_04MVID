@@ -15,7 +15,7 @@ void Model::loadModel(std::string const path) {
   // read file via ASSIMP
   Assimp::Importer importer;
   const aiScene* scene = importer.ReadFile(path.c_str(),
-    aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace | aiProcess_ConvertToLeftHanded);
+    aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
   // check for errors
   if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) { // if is Not Zero
     std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
