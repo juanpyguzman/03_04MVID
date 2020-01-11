@@ -12,10 +12,36 @@ Camera::Camera(float posX, float posY, float posZ, float upX, float upY, float u
     updateCameraVectors();
 }
 
-
 glm::mat4 Camera::getViewMatrix() const {
     return glm::lookAt(_position, _position + _front, _up);
 }
+
+//Modificación del ejercicio EJ06_01 para usar cámara tipo FPS 
+glm::mat4 Camera::getViewMatrix(bool FPS, float ground) const {
+    glm::vec3 positionFPS = _position;
+    
+    //Si está habilitado el modo FPS se fija la altura (coordenada "y" de la posición) sobre el suelo
+    if (FPS) {
+        positionFPS[1] = ground;
+    }
+
+    return glm::lookAt(positionFPS, positionFPS + _front, _up);
+}
+
+//Modificación del ejercicio EJ06_02 para implementar la función LookAt sin usar la de GLM
+glm::mat4 Camera::getViewMatrixNoGLM() const {
+    glm::mat4 matrixRUD = glm::mat4(1.0f);
+    glm::mat4 matrixP = glm::mat4(1.0f);
+
+    matrixRUD[0] = glm::vec4(-_right,0);
+    matrixRUD[1] = glm::vec4(_up, 0);
+    matrixRUD[2] = glm::vec4(_front, 0);
+    
+    matrixP[3] = glm::vec4(_position, 1);
+
+    return glm::mat4(glm::transpose(matrixRUD)) * matrixP;
+}
+
 
 float Camera::getFOV() const {
     return _fov;

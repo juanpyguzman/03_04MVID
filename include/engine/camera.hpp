@@ -21,6 +21,14 @@ class Camera {
         Camera(float posX, float posY, float posZ, float upX, float upY, float upZ, float yaw, float pitch);
 
         glm::mat4 getViewMatrix() const;
+
+        //Modificación del ejercicio EJ06_01 para usar cámara tipo FPS
+        glm::mat4 getViewMatrix(bool FPS, float ground) const;
+        
+        //Modificación del ejercicio EJ06_02 para implementar la función LookAt sin usar la de GLM
+        glm::mat4 getViewMatrixNoGLM() const;
+
+
         float getFOV() const;
         glm::vec3 getPosition() const;
 
