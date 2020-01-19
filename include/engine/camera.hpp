@@ -31,6 +31,7 @@ class Camera {
 
         float getFOV() const;
         glm::vec3 getPosition() const;
+        glm::vec3 getCameraFront() const;
 
         void handleKeyboard(Movement direction, float dt);
         void handleMouseMovement(float xoffset, float yoffset, bool constrainPitch = true);
@@ -38,6 +39,7 @@ class Camera {
 
     private:
         void updateCameraVectors();
+
     private:
         glm::vec3 _position, _front, _up, _right, _worldUp;
         float _yaw, _pitch;
