@@ -16,7 +16,7 @@ y los quads translucidos delante que actuen como un cristal de color.
 #include "engine/geometry/sphere.hpp"
 #include "engine/geometry/quad.hpp"
 
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 0.0f, 5.0f));
 glm::vec3 lightPos(4.0f, 1.0f, 0.0f);
 
 //Posición del Quad sólido
@@ -24,9 +24,9 @@ glm::vec3 quadDiffusePosition = glm::vec3(0.0f, 0.0f, -4.0f);
 
 //Posiciones, colores y transparencia de los Quads de color
 glm::vec3 quadColorPositions[] = {
-    glm::vec3(0.0f, 0.0f, -0.1f),
+    glm::vec3(0.0f, 0.0f, -2.0f),
     glm::vec3(0.0f, 0.0f, 0.0f),
-    glm::vec3(0.0f, 0.0f, 0.1f),
+    glm::vec3(0.0f, 0.0f, 2.0f),
 };
 
 glm::vec3 quadColor[] = {
