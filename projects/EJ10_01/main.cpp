@@ -88,113 +88,157 @@ void onScrollMoved(float x, float y) {
     camera.handleMouseScroll(y);
 }
 
-void render(const Geometry& light, const Model& object, const Geometry& quad, const Shader& s_light, const Shader& s_phong, const Texture& t_albedo, const Texture& t_specular) {
+void render(const Geometry& light, const Model& object, const Geometry& quad, 
+    const Shader& s_light, const Shader& s_phong, const Shader& s_model,
+    const Texture& t_albedo, const Texture& t_specular) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 view = camera.getViewMatrix();
     glm::mat4 proj = glm::perspective(glm::radians(camera.getFOV()), static_cast<float>(Window::instance()->getWidth()) / static_cast<float>(Window::instance()->getHeight()), 0.1f, 100.0f);
 
-    //Luces
-    s_light.use();
-    glm::mat4 model = glm::mat4(1.0f);
-    int i=0;
-    for (const auto& pointLightPos : pointLightPositions) {
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, pointLightPos);
-        model = glm::scale(model, glm::vec3(0.25f));
-        s_light.set("model", model);
-        s_light.set("view", view);
-        s_light.set("proj", proj);
+    {//Luces
+        s_light.use();
+        glm::mat4 model = glm::mat4(1.0f);
+        int i = 0;
+        for (const auto& pointLightPos : pointLightPositions) {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, pointLightPos);
+            model = glm::scale(model, glm::vec3(0.25f));
+            s_light.set("model", model);
+            s_light.set("view", view);
+            s_light.set("proj", proj);
 
-        s_light.set("lightColor", pointLightDiffColor[i]);
-        i++;
+            s_light.set("lightColor", pointLightDiffColor[i]);
+            i++;
 
-        light.render();
+            light.render();
+        }
+
+        for (const auto& spotLightPos : spotLightPositions) {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, spotLightPos);
+            model = glm::scale(model, glm::vec3(0.25f));
+            s_light.set("model", model);
+            s_light.set("view", view);
+            s_light.set("proj", proj);
+
+            s_light.set("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+
+            light.render();
+        }
     }
 
-    for (const auto& spotLightPos : spotLightPositions) {
+    {//Suelo
+        s_phong.use();
+        glm::mat4 model = glm::mat4(1.0f);
         model = glm::mat4(1.0f);
-        model = glm::translate(model, spotLightPos);
-        model = glm::scale(model, glm::vec3(0.25f));
-        s_light.set("model", model);
-        s_light.set("view", view);
-        s_light.set("proj", proj);
+        model = glm::translate(model, glm::vec3(0.0f, -0.5f, 0.0f));
+        model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+        s_phong.set("model", model);
+        s_phong.set("view", view);
+        s_phong.set("proj", proj);
 
-        s_light.set("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+        glm::mat3 normalMat = glm::inverse(glm::transpose(glm::mat3(model)));
+        s_phong.set("normalMat", normalMat);
 
-        light.render();
+        s_phong.set("viewPos", camera.getPosition());
+
+        //Luz direccional
+        s_phong.set("dirLight.direction", dirLightDirection);
+        s_phong.set("dirLight.ambient", 0.1f, 0.1f, 0.1f);
+        s_phong.set("dirLight.diffuse", 0.1f, 0.1f, 0.1f);
+        s_phong.set("dirLight.specular", 0.3f, 0.3f, 0.3f);
+
+        // Point Lights
+        s_phong.set("pointLight[0].position", pointLightPositions[0]);
+        s_phong.set("pointLight[0].ambient", 0.1f, 0.0f, 0.0f);
+        s_phong.set("pointLight[0].diffuse", 1.0f, 0.0f, 0.0f);
+        s_phong.set("pointLight[0].specular", 0.5f, 0.0f, 0.0f);
+        s_phong.set("pointLight[0].constant", 1.0f);
+        s_phong.set("pointLight[0].linear", 0.18f);
+        s_phong.set("pointLight[0].quadratic", 0.024f);
+
+        s_phong.set("pointLight[1].position", pointLightPositions[1]);
+        s_phong.set("pointLight[1].ambient", 0.1f, 0.1f, 0.1f);
+        s_phong.set("pointLight[1].diffuse", 0.5f, 0.5f, 0.5f);
+        s_phong.set("pointLight[1].specular", 1.0f, 1.0f, 1.0f);
+        s_phong.set("pointLight[1].constant", 1.0f);
+        s_phong.set("pointLight[1].linear", 0.09f);
+        s_phong.set("pointLight[1].quadratic", 0.032f);
+
+        // Spot Lights
+        s_phong.set("spotLight[0].position", spotLightPositions[0]);
+        s_phong.set("spotLight[0].direction", 0.0f, -1.0f, 0.0f);
+        s_phong.set("spotLight[0].ambient", 0.1f, 0.1f, 0.1f);
+        s_phong.set("spotLight[0].diffuse", 0.5f, 0.5f, 0.5f);
+        s_phong.set("spotLight[0].specular", 0.2f, 0.2f, 0.2f);
+        s_phong.set("spotLight[0].constant", 1.0f);
+        s_phong.set("spotLight[0].linear", 0.045f);
+        s_phong.set("spotLight[0].quadratic", 0.0075f);
+        s_phong.set("spotLight[0].cutOff", glm::cos(glm::radians(15.0f)));
+        s_phong.set("spotLight[0].outerCutOff", glm::cos(glm::radians(20.0f)));
+
+        t_albedo.use(s_phong, "material.diffuse", 0);
+        t_specular.use(s_phong, "material.specular", 1);
+        s_phong.set("material.shininess", 32);
+
+        quad.render();
     }
 
+    {//Modelo
+        s_model.use();
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, -0.5f, 0.0f));
+        model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+        s_model.set("model", model);
+        s_model.set("view", view);
+        s_model.set("proj", proj);
 
-    //Suelo
-    s_phong.use();
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, -0.5f, 0.0f));
-    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
-    s_phong.set("model", model);
-    s_phong.set("view", view);
-    s_phong.set("proj", proj);
+        glm::mat3 normalMat = glm::inverse(glm::transpose(glm::mat3(model)));
+        s_model.set("normalMat", normalMat);
+        s_model.set("viewPos", camera.getPosition());
 
-    glm::mat3 normalMat = glm::inverse(glm::transpose(glm::mat3(model)));
-    s_phong.set("normalMat", normalMat);
+        //Luz direccional
+        s_model.set("dirLight.direction", dirLightDirection);
+        s_model.set("dirLight.ambient", 0.1f, 0.1f, 0.1f);
+        s_model.set("dirLight.diffuse", 0.1f, 0.1f, 0.1f);
+        s_model.set("dirLight.specular", 0.3f, 0.3f, 0.3f);
 
-    s_phong.set("viewPos", camera.getPosition());
+        // Point Lights
+        s_model.set("pointLight[0].position", pointLightPositions[0]);
+        s_model.set("pointLight[0].ambient", 0.1f, 0.0f, 0.0f);
+        s_model.set("pointLight[0].diffuse", 1.0f, 0.0f, 0.0f);
+        s_model.set("pointLight[0].specular", 0.5f, 0.0f, 0.0f);
+        s_model.set("pointLight[0].constant", 1.0f);
+        s_model.set("pointLight[0].linear", 0.18f);
+        s_model.set("pointLight[0].quadratic", 0.024f);
 
-    //Luz direccional
-    s_phong.set("dirLight.direction", dirLightDirection);
-    s_phong.set("dirLight.ambient", 0.1f, 0.1f, 0.1f);
-    s_phong.set("dirLight.diffuse", 0.1f, 0.1f, 0.1f);
-    s_phong.set("dirLight.specular", 0.3f, 0.3f, 0.3f);
+        s_model.set("pointLight[1].position", pointLightPositions[1]);
+        s_model.set("pointLight[1].ambient", 0.1f, 0.1f, 0.1f);
+        s_model.set("pointLight[1].diffuse", 0.5f, 0.5f, 0.5f);
+        s_model.set("pointLight[1].specular", 1.0f, 1.0f, 1.0f);
+        s_model.set("pointLight[1].constant", 1.0f);
+        s_model.set("pointLight[1].linear", 0.09f);
+        s_model.set("pointLight[1].quadratic", 0.032f);
 
-    // Point Lights
-    s_phong.set("pointLight[0].position", pointLightPositions[0]);
-    s_phong.set("pointLight[0].ambient", 0.1f, 0.0f, 0.0f);
-    s_phong.set("pointLight[0].diffuse", 1.0f, 0.0f, 0.0f);
-    s_phong.set("pointLight[0].specular", 0.5f, 0.0f, 0.0f);
-    s_phong.set("pointLight[0].constant", 1.0f);
-    s_phong.set("pointLight[0].linear", 0.18f);
-    s_phong.set("pointLight[0].quadratic", 0.024f);
+        // Spot Lights
+        s_model.set("spotLight[0].position", spotLightPositions[0]);
+        s_model.set("spotLight[0].direction", 0.0f, -1.0f, 0.0f);
+        s_model.set("spotLight[0].ambient", 0.1f, 0.1f, 0.1f);
+        s_model.set("spotLight[0].diffuse", 0.5f, 0.5f, 0.5f);
+        s_model.set("spotLight[0].specular", 0.2f, 0.2f, 0.2f);
+        s_model.set("spotLight[0].constant", 1.0f);
+        s_model.set("spotLight[0].linear", 0.045f);
+        s_model.set("spotLight[0].quadratic", 0.0075f);
+        s_model.set("spotLight[0].cutOff", glm::cos(glm::radians(15.0f)));
+        s_model.set("spotLight[0].outerCutOff", glm::cos(glm::radians(20.0f)));
 
-    s_phong.set("pointLight[1].position", pointLightPositions[1]);
-    s_phong.set("pointLight[1].ambient", 0.1f, 0.1f, 0.1f);
-    s_phong.set("pointLight[1].diffuse", 0.5f, 0.5f, 0.5f);
-    s_phong.set("pointLight[1].specular", 1.0f, 1.0f, 1.0f);
-    s_phong.set("pointLight[1].constant", 1.0f);
-    s_phong.set("pointLight[1].linear", 0.09f);
-    s_phong.set("pointLight[1].quadratic", 0.032f);
+        s_model.set("material.shininess", 32);
 
-    // Spot Lights
-    s_phong.set("spotLight[0].position", spotLightPositions[0]);
-    s_phong.set("spotLight[0].direction", 0.0f, -1.0f, 0.0f);
-    s_phong.set("spotLight[0].ambient", 0.1f, 0.1f, 0.1f);
-    s_phong.set("spotLight[0].diffuse", 0.5f, 0.5f, 0.5f);
-    s_phong.set("spotLight[0].specular", 0.2f, 0.2f, 0.2f);
-    s_phong.set("spotLight[0].constant", 1.0f);
-    s_phong.set("spotLight[0].linear", 0.045f);
-    s_phong.set("spotLight[0].quadratic", 0.0075f);
-    s_phong.set("spotLight[0].cutOff", glm::cos(glm::radians(15.0f)));
-    s_phong.set("spotLight[0].outerCutOff", glm::cos(glm::radians(20.0f)));
-
-    t_albedo.use(s_phong, "material.diffuse", 0);
-    t_specular.use(s_phong, "material.specular", 1);
-    s_phong.set("material.shininess", 32);
-
-    quad.render();
-
-    //Modelo
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, -0.5f, 0.0f));
-    model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
-    s_phong.set("model", model);
-    s_phong.set("view", view);
-    s_phong.set("proj", proj);
-
-    normalMat = glm::inverse(glm::transpose(glm::mat3(model)));
-    s_phong.set("normalMat", normalMat);
-    s_phong.set("viewPos", camera.getPosition());
-
-    object.render(s_phong);
+        object.render(s_model);
+    }
 }
 
 int main(int, char* []) {
@@ -202,13 +246,18 @@ int main(int, char* []) {
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+    //Carga de los shaders
     const Shader s_phong("../projects/EJ10_01/phong.vs", "../projects/EJ10_01/blinn.fs");
+    const Shader s_model("../projects/EJ10_01/model.vs", "../projects/EJ10_01/model.fs");
     const Shader s_light("../projects/EJ10_01/light.vs", "../projects/EJ10_01/light.fs");
-
+    
+    //Textura para el suelo
     const Texture t_albedo("../assets/textures/moss/Moss_albedo.jpg", Texture::Format::RGB);
     const Texture t_specular("../assets/textures/moss/Moss_specular.jpg", Texture::Format::RGB);
 
+    //Carga del modelo y sus texturas
     const Model object("../assets/models/T-Rex/TrexByJoel3d.fbx");
+   
     //Suelo con textura repetida 5 veces
     const Quad quad(1.0f, 5);
     const Sphere sphere(1.0f, 50, 50);
@@ -229,7 +278,7 @@ int main(int, char* []) {
         lastFrame = currentFrame;
 
         handleInput(deltaTime);
-        render(sphere, object, quad, s_light, s_phong, t_albedo, t_specular);
+        render(sphere, object, quad, s_light, s_phong, s_model, t_albedo, t_specular);
         window->frame();
     }
 
