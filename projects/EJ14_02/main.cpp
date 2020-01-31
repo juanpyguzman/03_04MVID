@@ -19,9 +19,9 @@ EJ14.02 - Usando la misma escena, implementar un sistema con dos luces, donde am
 
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-glm::vec3 light1Pos(0.5f, 5.0f, 1.0f);
+glm::vec3 light1Pos(0.5f, 4.0f, 1.0f);
 glm::vec3 light1Dir(0.0f, -1.0f, 0.0f);
-glm::vec3 light2Pos(-0.5f, 5.0f, -1.0f);
+glm::vec3 light2Pos(-0.5f, 5.0f, -1.5f);
 glm::vec3 light2Dir(0.0f, -1.0f, 0.0f);
 
 const uint32_t k_shadow_height = 1024;
@@ -108,7 +108,7 @@ std::pair<uint32_t, uint32_t> createFBO() {
     return std::make_pair(fbo, depthMap);
 }
 
-void renderScene(const Shader& shader1, const Shader& shader2, const Geometry& quad, const Geometry& cube, const Geometry& sphere,
+void renderScene(const Shader& shader1, const Geometry& quad, const Geometry& cube, const Geometry& sphere,
     const Texture& t_albedo, const Texture& t_specular,
     glm::mat4 view, glm::mat4 proj) {
     t_albedo.use(shader1, "material.diffuse", 0);
@@ -130,34 +130,13 @@ void renderScene(const Shader& shader1, const Shader& shader2, const Geometry& q
     cube.render();
 
     model = glm::mat4(1.0);
-    model = glm::translate(model, glm::vec3(0.0f, 2.0f, 0.0f));
+    model = glm::translate(model, glm::vec3(0.6f, 2.0f, 0.0f));
     model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
     shader1.set("model", model);
     normalMat = glm::inverse(glm::transpose(glm::mat3(model)));
     shader1.set("normalMat", normalMat);
     sphere.render();
 
-    //Lights
-    shader2.use();
-    //Light1
-    model = glm::mat4(1.0);
-    model = glm::translate(model, light1Pos);
-    model = glm::scale(model, glm::vec3(0.25f));
-    shader2.set("model", model);
-    shader2.set("view", view);
-    shader2.set("proj", proj);
-    shader2.set("lightColor", 1.0f, 1.0f, 1.0f);
-    sphere.render();
-
-    //Light2
-    model = glm::mat4(1.0);
-    model = glm::translate(model, light2Pos);
-    model = glm::scale(model, glm::vec3(0.25f));
-    shader2.set("model", model);
-    shader2.set("view", view);
-    shader2.set("proj", proj);
-    shader2.set("lightColor", 1.0f, 1.0f, 1.0f);
-    sphere.render();
 }
 
 void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere,
@@ -179,7 +158,7 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere,
     s_depth.use();
     s_depth.set("lightSpaceMatrix", light1SpaceMatrix);
     //glCullFace(GL_FRONT);
-    renderScene(s_depth, s_light, quad, cube, sphere, t_albedo, t_specular, light1View, lightProjection);
+    renderScene(s_depth, quad, cube, sphere, t_albedo, t_specular, light1View, lightProjection);
     //glCullFace(GL_BACK);
 
     //Light2
@@ -193,7 +172,7 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere,
 
     s_depth.set("lightSpaceMatrix", light2SpaceMatrix);
     //glCullFace(GL_FRONT);
-    renderScene(s_depth, s_light, quad, cube, sphere, t_albedo, t_specular, light2View, lightProjection);
+    renderScene(s_depth, quad, cube, sphere, t_albedo, t_specular, light2View, lightProjection);
     //glCullFace(GL_BACK);
 
 //SECOND PASS
@@ -203,6 +182,29 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere,
 
     glm::mat4 view = camera.getViewMatrix();
     glm::mat4 proj = glm::perspective(glm::radians(camera.getFOV()), static_cast<float>(Window::instance()->getWidth()) / Window::instance()->getHeight(), 0.1f, 100.0f);
+
+
+    //Lights
+    s_light.use();
+    //Light1
+    glm::mat4 model = glm::mat4(1.0);
+    model = glm::translate(model, light1Pos);
+    model = glm::scale(model, glm::vec3(0.25f));
+    s_light.set("model", model);
+    s_light.set("view", view);
+    s_light.set("proj", proj);
+    s_light.set("lightColor", 1.0f, 0.0f, 0.0f);
+    sphere.render();
+
+    //Light2
+    model = glm::mat4(1.0);
+    model = glm::translate(model, light2Pos);
+    model = glm::scale(model, glm::vec3(0.25f));
+    s_light.set("model", model);
+    s_light.set("view", view);
+    s_light.set("proj", proj);
+    s_light.set("lightColor", 1.0f, 1.0f, 1.0f);
+    sphere.render();
 
     s_phong.use();
 
@@ -246,7 +248,7 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere,
     glBindTexture(GL_TEXTURE_2D, fbo2_texture);
     s_phong.set("depthMap[1]", 3);
 
-    renderScene(s_phong, s_light, quad, cube, sphere, t_albedo, t_specular, view, proj);
+    renderScene(s_phong, quad, cube, sphere, t_albedo, t_specular, view, proj);
 
 
     //Debug
