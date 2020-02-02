@@ -5,8 +5,8 @@ out vec4 FragColor;
 in vec3 normal;
 in vec3 fragPos;
 in vec2 uv;
+in vec4 fragPosLight0Space;
 in vec4 fragPosLight1Space;
-in vec4 fragPosLight2Space;
 
 struct Material {
     sampler2D diffuse;
@@ -35,12 +35,12 @@ uniform SpotLight spotLight[NUMBER_SPOT_LIGHTS];
 
 uniform vec3 viewPos;
 
-uniform sampler2D depthMap[NUMBER_SPOT_LIGHTS];
+uniform sampler2D depthMap0;
+uniform sampler2D depthMap1;
 
 float ShadowCalculation(vec4 fragPosLightSpace, float bias, sampler2D depthMap) {
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
-    //float closestDepth = texture(depthMap, projCoords.xy).r;
     float currentDepth = projCoords.z;
 
     float shadow = 0.0;
@@ -92,8 +92,8 @@ vec3 calcSpotLight(SpotLight light, vec4 fragPosLightSpace, vec3 normal, vec3 vi
 
 void main() {
     vec4 fragPosLightSpace[2];
-    fragPosLightSpace[0]=fragPosLight1Space;
-    fragPosLightSpace[1]=fragPosLight2Space;
+    fragPosLightSpace[0]=fragPosLight0Space;
+    fragPosLightSpace[1]=fragPosLight1Space;
     
     vec3 albedo = vec3(texture(material.diffuse, uv));
     vec3 specular = vec3(texture(material.specular, uv));
@@ -103,9 +103,9 @@ void main() {
     
     vec3 finalColor;
 
-    for (int i = 0; i < NUMBER_SPOT_LIGHTS; ++i) {
-     finalColor += calcSpotLight(spotLight[i], fragPosLightSpace[i], norm, viewDir, fragPos, albedo, specular, depthMap[i]);
-	}
+    finalColor = calcSpotLight(spotLight[0], fragPosLightSpace[0], norm, viewDir, fragPos, albedo, specular, depthMap0);
+    finalColor += calcSpotLight(spotLight[1], fragPosLightSpace[1], norm, viewDir, fragPos, albedo, specular, depthMap1);
+
 
     FragColor = vec4(finalColor, 1.0f);
 }

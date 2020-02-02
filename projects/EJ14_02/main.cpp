@@ -19,10 +19,10 @@ EJ14.02 - Usando la misma escena, implementar un sistema con dos luces, donde am
 
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-glm::vec3 light1Pos(0.5f, 4.0f, 1.0f);
+glm::vec3 light0Pos(0.5f, 4.0f, 1.0f);
+glm::vec3 light0Dir(0.0f, -1.0f, 0.0f);
+glm::vec3 light1Pos(-0.5f, 5.0f, -1.5f);
 glm::vec3 light1Dir(0.0f, -1.0f, 0.0f);
-glm::vec3 light2Pos(-0.5f, 5.0f, -1.5f);
-glm::vec3 light2Dir(0.0f, -1.0f, 0.0f);
 
 const uint32_t k_shadow_height = 1024;
 const uint32_t k_shadow_width = 1024;
@@ -152,11 +152,11 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere,
     glEnable(GL_DEPTH_TEST);
 
     const glm::mat4 lightProjection = glm::perspective(glm::radians(45.0f), 1.0f, k_shadow_near, k_shadow_far);
-    const glm::mat4 light1View = glm::lookAt(light1Pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    const glm::mat4 light1SpaceMatrix = lightProjection * light1View;
+    const glm::mat4 light1View = glm::lookAt(light0Pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    const glm::mat4 light0SpaceMatrix = lightProjection * light1View;
 
     s_depth.use();
-    s_depth.set("lightSpaceMatrix", light1SpaceMatrix);
+    s_depth.set("lightSpaceMatrix", light0SpaceMatrix);
     //glCullFace(GL_FRONT);
     renderScene(s_depth, quad, cube, sphere, t_albedo, t_specular, light1View, lightProjection);
     //glCullFace(GL_BACK);
@@ -167,10 +167,10 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere,
     glClear(GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
-    const glm::mat4 light2View = glm::lookAt(light2Pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    const glm::mat4 light2SpaceMatrix = lightProjection * light2View;
+    const glm::mat4 light2View = glm::lookAt(light1Pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    const glm::mat4 light1SpaceMatrix = lightProjection * light2View;
 
-    s_depth.set("lightSpaceMatrix", light2SpaceMatrix);
+    s_depth.set("lightSpaceMatrix", light1SpaceMatrix);
     //glCullFace(GL_FRONT);
     renderScene(s_depth, quad, cube, sphere, t_albedo, t_specular, light2View, lightProjection);
     //glCullFace(GL_BACK);
@@ -188,17 +188,17 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere,
     s_light.use();
     //Light1
     glm::mat4 model = glm::mat4(1.0);
-    model = glm::translate(model, light1Pos);
+    model = glm::translate(model, light0Pos);
     model = glm::scale(model, glm::vec3(0.25f));
     s_light.set("model", model);
     s_light.set("view", view);
     s_light.set("proj", proj);
-    s_light.set("lightColor", 1.0f, 0.0f, 0.0f);
+    s_light.set("lightColor", 1.0f, 1.0f, 1.0f);
     sphere.render();
 
     //Light2
     model = glm::mat4(1.0);
-    model = glm::translate(model, light2Pos);
+    model = glm::translate(model, light1Pos);
     model = glm::scale(model, glm::vec3(0.25f));
     s_light.set("model", model);
     s_light.set("view", view);
@@ -213,8 +213,10 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere,
 
     s_phong.set("viewPos", camera.getPosition());
 
-    s_phong.set("spotLight[0].position", light1Pos);
-    s_phong.set("spotLight[0].direction", light1Dir);
+    s_phong.set("isShadow", true);
+
+    s_phong.set("spotLight[0].position", light0Pos);
+    s_phong.set("spotLight[0].direction", light0Dir);
     s_phong.set("spotLight[0].ambient", 0.1f, 0.1f, 0.1f);
     s_phong.set("spotLight[0].diffuse", 0.5f, 0.5f, 0.5f);
     s_phong.set("spotLight[0].specular", 1.0f, 1.0f, 1.0f);
@@ -224,8 +226,8 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere,
     s_phong.set("spotLight[0].cutOff", glm::cos(glm::radians(30.0f)));
     s_phong.set("spotLight[0].outerCutOff", glm::cos(glm::radians(35.0f)));
 
-    s_phong.set("spotLight[1].position", light2Pos);
-    s_phong.set("spotLight[1].direction", light2Dir);
+    s_phong.set("spotLight[1].position", light1Pos);
+    s_phong.set("spotLight[1].direction", light1Dir);
     s_phong.set("spotLight[1].ambient", 0.1f, 0.1f, 0.1f);
     s_phong.set("spotLight[1].diffuse", 0.5f, 0.5f, 0.5f);
     s_phong.set("spotLight[1].specular", 1.0f, 1.0f, 1.0f);
@@ -237,16 +239,16 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere,
 
     s_phong.set("material.shininess", 32);
 
+    s_phong.set("light0SpaceMatrix", light0SpaceMatrix);
     s_phong.set("light1SpaceMatrix", light1SpaceMatrix);
-    s_phong.set("light2SpaceMatrix", light2SpaceMatrix);
 
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, fbo1_texture);
-    s_phong.set("depthMap[0]", 2);
+    s_phong.set("depthMap0", 2);
 
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, fbo2_texture);
-    s_phong.set("depthMap[1]", 3);
+    s_phong.set("depthMap1", 3);
 
     renderScene(s_phong, quad, cube, sphere, t_albedo, t_specular, view, proj);
 
