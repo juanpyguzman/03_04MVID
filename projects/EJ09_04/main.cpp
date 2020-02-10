@@ -16,19 +16,66 @@ Pintar una esfera para cada luz en la posición de cada una de ellas. Y hacer que
 #include "engine/geometry/sphere.hpp"
 #include "engine/geometry/quad.hpp"
 #include "engine/geometry/teapot.hpp"
+#include "engine/light.hpp"
+#include <iostream>
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
-glm::vec3 dirLightDirection(-0.2f, -1.0f, -0.3f);
+DirectionalLight dirLight(
+    glm::vec3(-0.2f, -1.0f, -0.3f), //Direction
+    glm::vec3(0.0f, 0.0f, 0.0f),    //Position (for shadow mapping)
+    glm::vec3(0.02f, 0.02f, 0.02f), //Ambient
+    glm::vec3(0.3f, 0.3f, 0.3f),    //Diffuse
+    glm::vec3(0.2f, 0.2f, 0.2f)     //Specular
+);
 
-glm::vec3 pointLightPositions[] = {
-    glm::vec3(4.0f, 2.0f, 0.0f),
-    glm::vec3(-4.0f, 2.0f, 0.0f)
+uint32_t numberPointLights = 2;
+PointLight* pointLight = new PointLight[numberPointLights]
+{
+    {glm::vec3(4.0f, 2.0f, 0.0f),   //Position
+    glm::vec3(0.02f, 0.02f, 0.02f), //Ambient
+    glm::vec3(0.2f, 0.0f, 0.0f),    //Diffuse
+    glm::vec3(0.5f, 0.0f, 0.0f),    //Specular
+    0.7f,                           //Constant
+    0.18f,                          //Linear
+    0.024f },                       //Quadratic
+
+    {glm::vec3(-4.0f, 2.0f, 0.0f),  //Position
+    glm::vec3(0.02f, 0.02f, 0.02f), //Ambient
+    glm::vec3(0.0f, 0.4f, 0.0f),    //Diffuse
+    glm::vec3(0.0f, 0.5f, 0.0f),    //Specular
+    1.0f,                           //Constant
+    0.09f,                          //Linear
+    0.032f }                        //Quadratic
 };
 
-glm::vec3 spotLightPositions[] = {
-    glm::vec3(0.0f, 2.0f, 0.0f),
-    glm::vec3(0.0f, 1.0f, -3.0f)
+
+uint32_t numberSpotLights = 2;
+SpotLight* spotLight = new SpotLight[numberSpotLights]
+{
+    {glm::vec3(0.0f, 2.0f, 0.0f), //Position
+    glm::vec3(0.0f, -1.0f, 0.0f), //Direction
+    glm::vec3(0.1f, 0.1f, 0.1f),  //Ambient
+    glm::vec3(0.5f, 0.5f, 0.5f),  //Diffuse
+    glm::vec3(1.0f, 1.0f, 1.0f),  //Specular
+    1.0f,                         //Constant 
+    0.2f,                         //Linear
+    0.06f,                        //Quadratic 
+    glm::cos(glm::radians(25.0f)),//CutOff
+    glm::cos(glm::radians(30.0f)) //OuterCutOff
+    },
+
+    {glm::vec3(0.0f, 1.0f, -3.0f), //Position
+    glm::vec3(0.0f, -1.0f, -0.5f), //Direction
+    glm::vec3(0.1f, 0.0f, 0.1f),   //Ambient
+    glm::vec3(0.5f, 0.0f, 0.6f),   //Diffuse 
+    glm::vec3(1.0f, 0.0f, 1.0f),   //Specular
+    1.0f,                          //Constant
+    0.3f,                          //Linear
+    0.08f,                         //Quadratic
+    glm::cos(glm::radians(20.0f)), //CutOff
+    glm::cos(glm::radians(25.0f))  //OuterCutOff 
+    }
 };
 
 glm::vec3 teapotPositions[] = {
@@ -105,7 +152,7 @@ void render(const Geometry& floor, const Geometry& object, const Geometry& light
 
     // Point Lights
     model = glm::mat4(1.0f);
-    model = glm::translate(model, pointLightPositions[0]);
+    model = glm::translate(model, pointLight[0].getPosition());
     model = glm::scale(model, glm::vec3(0.25f));
     s_light.set("model", model);
     s_light.set("view", view);
@@ -115,7 +162,7 @@ void render(const Geometry& floor, const Geometry& object, const Geometry& light
     light.render();
     
     model = glm::mat4(1.0f);
-    model = glm::translate(model, pointLightPositions[1]);
+    model = glm::translate(model, pointLight[1].getPosition());
     model = glm::scale(model, glm::vec3(0.25f));
     s_light.set("model", model);
     s_light.set("view", view);
@@ -127,22 +174,22 @@ void render(const Geometry& floor, const Geometry& object, const Geometry& light
 
     // Spot Lights
     model = glm::mat4(1.0f);
-    model = glm::translate(model, spotLightPositions[0]);
+    model = glm::translate(model, spotLight[0].getPosition());
     model = glm::scale(model, glm::vec3(0.25f));
     s_light.set("model", model);
     s_light.set("view", view);
     s_light.set("proj", proj);
-    s_light.set("lightColor", 1.0f, 1.0f, 1.0f);
+    s_light.set("lightColor", spotLight[0].getColor());
 
     light.render();
 
     model = glm::mat4(1.0f);
-    model = glm::translate(model, spotLightPositions[1]);
+    model = glm::translate(model, spotLight[1].getPosition());
     model = glm::scale(model, glm::vec3(0.25f));
     s_light.set("model", model);
     s_light.set("view", view);
     s_light.set("proj", proj);
-    s_light.set("lightColor", 0.5f, 0.0f, 0.6f);
+    s_light.set("lightColor", spotLight[1].getColor());
 
     light.render();
 
@@ -162,50 +209,15 @@ void render(const Geometry& floor, const Geometry& object, const Geometry& light
     s_phong.set("viewPos", camera.getPosition());
 
     //Luz direccional
-    s_phong.set("dirLight.direction", dirLightDirection);
-    s_phong.set("dirLight.ambient", 0.02f, 0.02f, 0.02f);
-    s_phong.set("dirLight.diffuse", 0.3f, 0.3f, 0.3f);
-    s_phong.set("dirLight.specular", 0.2f, 0.2f, 0.2f);
+    dirLight.setShader(s_phong);
 
     // Point Lights
-    s_phong.set("pointLight[0].position", pointLightPositions[0]);
-    s_phong.set("pointLight[0].ambient", 0.02f, 0.02f, 0.02f);
-    s_phong.set("pointLight[0].diffuse", 0.2f, 0.0f, 0.0f);
-    s_phong.set("pointLight[0].specular", 0.5f, 0.0f, 0.0f);
-    s_phong.set("pointLight[0].constant", 0.7f);
-    s_phong.set("pointLight[0].linear", 0.18f);
-    s_phong.set("pointLight[0].quadratic", 0.024f);
-
-    s_phong.set("pointLight[1].position", pointLightPositions[1]);
-    s_phong.set("pointLight[1].ambient", 0.02f, 0.02f, 0.02f);
-    s_phong.set("pointLight[1].diffuse", 0.0f, 0.4f, 0.0f);
-    s_phong.set("pointLight[1].specular", 0.0f, 0.5f, 0.0f);
-    s_phong.set("pointLight[1].constant", 1.0f);
-    s_phong.set("pointLight[1].linear", 0.09f);
-    s_phong.set("pointLight[1].quadratic", 0.032f);
+    pointLight[0].setShader(s_phong, 0);
+    pointLight[1].setShader(s_phong, 1);
 
     // Spot Lights
-    s_phong.set("spotLight[0].position", spotLightPositions[0]);
-    s_phong.set("spotLight[0].direction", 0.0f, -1.0f, 0.0f);
-    s_phong.set("spotLight[0].ambient", 0.1f, 0.1f, 0.1f);
-    s_phong.set("spotLight[0].diffuse", 0.5f, 0.5f, 0.5f);
-    s_phong.set("spotLight[0].specular", 1.0f, 1.0f, 1.0f);
-    s_phong.set("spotLight[0].constant", 1.0f);
-    s_phong.set("spotLight[0].linear", 0.2f);
-    s_phong.set("spotLight[0].quadratic", 0.06f);
-    s_phong.set("spotLight[0].cutOff", glm::cos(glm::radians(25.0f)));
-    s_phong.set("spotLight[0].outerCutOff", glm::cos(glm::radians(30.0f)));
-
-    s_phong.set("spotLight[1].position", spotLightPositions[1]);
-    s_phong.set("spotLight[1].direction", 0.0f, -1.0f, -0.5f);
-    s_phong.set("spotLight[1].ambient", 0.1f, 0.0f, 0.1f);
-    s_phong.set("spotLight[1].diffuse", 0.5f, 0.0f, 0.6f);
-    s_phong.set("spotLight[1].specular", 1.0f, 0.0f, 1.0f);
-    s_phong.set("spotLight[1].constant", 1.0f);
-    s_phong.set("spotLight[1].linear", 0.3f);
-    s_phong.set("spotLight[1].quadratic", 0.08f);
-    s_phong.set("spotLight[1].cutOff", glm::cos(glm::radians(20.0f)));
-    s_phong.set("spotLight[1].outerCutOff", glm::cos(glm::radians(25.0f)));
+    spotLight[0].setShader(s_phong, 0);
+    spotLight[1].setShader(s_phong, 1);
     
     // Suelo
     t_albedo.use(s_phong, "material.diffuse", 0);

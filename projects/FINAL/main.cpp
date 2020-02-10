@@ -11,9 +11,20 @@
 #include "engine/geometry/sphere.hpp"
 #include "engine/geometry/quad.hpp"
 #include "engine/model.hpp"
+#include "engine/light.hpp"
 #include <iostream>
 
 Camera camera(glm::vec3(0.0f, 0.0f, 10.0f));
+
+//Directional Light
+DirectionalLight dirLight(
+    glm::vec3(-1.0f, -0.5f, -3.0f), //Direction
+    glm::vec3(1.0f, 0.5f, 3.0f),    //Position (for shadow mapping)
+    glm::vec3(0.2f, 0.2f, 0.2f),    //Ambient
+    glm::vec3(0.8f, 0.8f, 0.8f),    //Diffuse
+    glm::vec3(1.0f, 1.0f, 1.0f)     //Specular
+);
+
 glm::vec3 lightPos(1.0f, 0.5f, 3.0f);
 
 //Background
@@ -222,8 +233,8 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere, 
     glClear(GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
-    const glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, k_shadow_near, k_shadow_far);
-    const glm::mat4 lightView = glm::lookAt(lightPos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    const glm::mat4 lightProjection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, k_shadow_near, k_shadow_far);
+    const glm::mat4 lightView = glm::lookAt(dirLight.getPosition(), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     const glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
     s_depth.use();
@@ -247,10 +258,9 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere, 
 
     s_phong.set("viewPos", camera.getPosition());
 
-    s_phong.set("light.position", lightPos);
-    s_phong.set("light.ambient", 0.2f, 0.2f, 0.2f);
-    s_phong.set("light.diffuse", 0.8f, 0.8f, 0.8f);
-    s_phong.set("light.specular", 1.0f, 1.0f, 1.0f);
+
+    //Luz direccional
+    dirLight.setShader(s_phong);
 
     s_phong.set("material.shininess", 64);
 

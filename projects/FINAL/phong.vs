@@ -24,14 +24,14 @@ out vec3 tangentViewPos;
 out vec3 tangentFragPos;
 
 
-struct Light {
+struct DirLight {
+    vec3 direction;
     vec3 position;
-
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
 };
-uniform Light light;
+uniform DirLight dirLight;
 
 void main() {
     uv = aUv;
@@ -45,7 +45,7 @@ void main() {
 
     mat3 TBN = transpose(mat3(T, B, N));
 
-    tangentLightPos = TBN * light.position;
+    tangentLightPos = TBN * dirLight.position;
     tangentViewPos = TBN * viewPos;
     tangentFragPos = TBN * fragPos;
 

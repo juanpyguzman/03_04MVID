@@ -24,14 +24,14 @@ uniform sampler2D texture_diffuse1;
 uniform sampler2D texture_specular1;
 uniform sampler2D texture_normal1;
 
-struct Light {
+struct DirLight {
+    vec3 direction;	
     vec3 position;
-
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
 };
-uniform Light light;
+uniform DirLight dirLight;
 
 uniform vec3 viewPos;
 
@@ -68,16 +68,16 @@ void main() {
         normal = normalize(normal * 2.0 - 1.0);
 
         vec3 albedo = vec3(texture(texture_diffuse1, uv));
-        vec3 ambient = albedo * light.ambient;
+        vec3 ambient = albedo * dirLight.ambient;
 
         vec3 lightDir = normalize(tangentLightPos - tangentFragPos);
         float diff = max(dot(normal, lightDir), 0.0);
-        vec3 diffuse = diff * albedo * light.diffuse;
+        vec3 diffuse = diff * albedo * dirLight.diffuse;
 
         vec3 viewDir = normalize(tangentViewPos - tangentFragPos);
         vec3 halfwayDir = normalize(lightDir + viewDir);
         float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
-        vec3 specular = spec * vec3(texture(texture_specular1, uv)) * light.specular;
+        vec3 specular = spec * vec3(texture(texture_specular1, uv)) * dirLight.specular;
 
         float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
         float shadow = ShadowCalculation(fragPosLightSpace, bias);
@@ -93,16 +93,16 @@ void main() {
         normal = normalize(normal * 2.0 - 1.0);
 
         vec3 albedo = vec3(texture(material.diffuse, uv));
-        vec3 ambient = albedo * light.ambient;
+        vec3 ambient = albedo * dirLight.ambient;
 
         vec3 lightDir = normalize(tangentLightPos - tangentFragPos);
         float diff = max(dot(normal, lightDir), 0.0);
-        vec3 diffuse = diff * albedo * light.diffuse;
+        vec3 diffuse = diff * albedo * dirLight.diffuse;
 
         vec3 viewDir = normalize(tangentViewPos - tangentFragPos);
         vec3 halfwayDir = normalize(lightDir + viewDir);
         float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
-        vec3 specular = spec * vec3(texture(material.specular, uv)) * light.specular;
+        vec3 specular = spec * vec3(texture(material.specular, uv)) * dirLight.specular;
 
         float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
         float shadow = ShadowCalculation(fragPosLightSpace, bias);
