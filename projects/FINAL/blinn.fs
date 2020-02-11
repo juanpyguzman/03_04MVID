@@ -33,6 +33,20 @@ struct DirLight {
 };
 uniform DirLight dirLight;
 
+struct PointLight {
+    vec3 position;
+
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
+};
+#define NUMBER_POINT_LIGHTS 1
+uniform PointLight pointLight[NUMBER_POINT_LIGHTS];
+
 uniform vec3 viewPos;
 
 uniform sampler2D depthMap;
@@ -60,6 +74,44 @@ float ShadowCalculation(vec4 fragPosLightSpace, float bias) {
 
     return shadow;
 }
+
+vec3 calcDirectionalLight(DirLight light, vec3 normal, vec3 viewDir, vec3 albedoMap) {
+    vec3 ambient = albedoMap * light.ambient;
+
+    vec3 lightDir = normalize(tangentLightPos - tangentFragPos);
+    float diff = max(dot(normal, lightDir), 0.0);
+    vec3 diffuse = diff * albedoMap * light.diffuse;
+
+    vec3 halfwayDir = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
+    vec3 specular = spec * vec3(texture(material.specular, uv)) * light.specular;
+
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    float shadow = ShadowCalculation(fragPosLightSpace, bias);
+    
+    vec3 phong = ambient + ((1.0 - shadow) * (diffuse + specular));
+
+    return phong;
+}
+
+vec3 calcPointLight(PointLight light, vec3 normal, vec3 viewDir, vec3 fragPos, vec3 albedoMap) {
+    float distance = length(light.position - fragPos);
+    float attenuation = 1.0 / (light.constant +
+        light.linear * distance +
+        light.quadratic * distance * distance);
+
+    vec3 ambient = albedoMap * light.ambient;
+
+    vec3 lightDir = normalize(tangentLightPos - tangentFragPos);
+    float diff = max(dot(normal, lightDir), 0.0);
+    vec3 diffuse = diff * albedoMap * light.diffuse;
+
+    vec3 halfwayDir = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
+    vec3 specular = spec * vec3(texture(material.specular, uv)) * light.specular;
+
+    return (ambient + diffuse + specular) * attenuation;
+    }
 
 void main() {
     if (isModel){
@@ -95,20 +147,15 @@ void main() {
         vec3 albedo = vec3(texture(material.diffuse, uv));
         vec3 ambient = albedo * dirLight.ambient;
 
-        vec3 lightDir = normalize(tangentLightPos - tangentFragPos);
-        float diff = max(dot(normal, lightDir), 0.0);
-        vec3 diffuse = diff * albedo * dirLight.diffuse;
-
         vec3 viewDir = normalize(tangentViewPos - tangentFragPos);
-        vec3 halfwayDir = normalize(lightDir + viewDir);
-        float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
-        vec3 specular = spec * vec3(texture(material.specular, uv)) * dirLight.specular;
 
-        float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
-        float shadow = ShadowCalculation(fragPosLightSpace, bias);
-    
-        vec3 phong = ambient + ((1.0 - shadow) * (diffuse + specular));
+        vec3 phong = calcDirectionalLight(dirLight, normal, viewDir, albedo);
+
+        
+        for (int i = 0; i < NUMBER_POINT_LIGHTS; ++i) {
+            phong += calcPointLight(pointLight[i], normal, viewDir, fragPos, albedo);
+	    }
+
         FragColor = vec4(phong, 1.0f);
-
     }
 }

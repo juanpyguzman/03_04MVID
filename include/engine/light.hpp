@@ -29,6 +29,7 @@ class PointLight {
 		glm::vec3 getPosition();
 		glm::vec3 getColor();
 		void setShader(const Shader& shader, uint32_t unit);
+		void setPosition(glm::vec3 position);
 
 	private:
 		glm::vec3 _position;

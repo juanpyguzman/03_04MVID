@@ -177,7 +177,7 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere,
 
     renderScene(s_phong, quad, cube, sphere, t_albedo, t_specular);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    /*glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, Window::instance()->getWidth(), Window::instance()->getHeight());
     glClear(GL_COLOR_BUFFER_BIT);
     glDisable(GL_DEPTH_TEST);
@@ -187,7 +187,7 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere,
     glBindTexture(GL_TEXTURE_2D, fbo_texture);
     s_debug.set("depthMap", 0);
 
-    quad.render();
+    quad.render();*/
 }
 
 int main(int, char* []) {

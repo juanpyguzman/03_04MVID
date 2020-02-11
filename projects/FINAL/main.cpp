@@ -25,8 +25,6 @@ DirectionalLight dirLight(
     glm::vec3(1.0f, 1.0f, 1.0f)     //Specular
 );
 
-glm::vec3 lightPos(1.0f, 0.5f, 3.0f);
-
 //Background
 glm::vec3 backGroundSize(10.0f, 10.0f, 10.0f);
 
@@ -41,13 +39,28 @@ bool destroyBlock[4][17];
 //Bar
 glm::vec3 barPos(0.0f, -3.8f, 0.0f);
 glm::vec3 barSize(1.0f, 0.2f, 0.2f);
-//const float k_barSpeed = 2.5f;
 const float k_barSpeed = 4.5f;
+
+//Lifes
+uint16_t lifes = 3;
 
 //Ball
 glm::vec3 ballPos(barPos.x, barPos.y + 0.3f, barPos.z);
 float ballRadius = 0.1f;
-glm::vec2 k_ballSpeed(3.0f, -4.0f);
+glm::vec2 k_ballSpeed(3.0f, 4.0f);
+
+//PointLight for the ball
+uint16_t numberPointLights = 1;
+PointLight* pointLight = new PointLight[numberPointLights]
+{   
+    {glm::vec3(ballPos),            //Position
+    glm::vec3(0.2f, 0.2f, 0.1f),    //Ambient
+    glm::vec3(0.9f, 0.9f, 0.2f),    //Diffuse
+    glm::vec3(0.9f, 0.9f, 0.2f),    //Specular
+    1.0f,                           //Constant
+    1.7f,                           //Linear
+    2.8f }                          //Quadratic
+};
 
 //Other constants
 const uint32_t k_shadow_height = 1024;
@@ -95,7 +108,9 @@ void onKeyPress(int key, int action) {
     }
 
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
-        startGame = true;
+        if (lifes > 0) {
+            startGame = true;
+        }
     }
 }
 
@@ -262,6 +277,10 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere, 
     //Luz direccional
     dirLight.setShader(s_phong);
 
+    //Lightball
+    pointLight->setPosition(ballPos);
+    pointLight->setShader(s_phong, 0);
+
     s_phong.set("material.shininess", 64);
 
     s_phong.set("lightSpaceMatrix", lightSpaceMatrix);
@@ -352,7 +371,17 @@ int main(int, char* []) {
             t_ball_albedo, t_ball_specular, t_ball_normal,
             fbo.first, fbo.second);
 
+        if (!startGame && lifes>0) {
+            ballPos = glm::vec3(barPos.x, barPos.y + 0.3f, barPos.z);
+        }
+
         if (startGame) {
+            //Caída de la pelota
+            if (ballPos.y < barPos.y-0.5f) {
+                startGame = false;
+                k_ballSpeed.y = -1.0 * k_ballSpeed.y;
+                lifes--;
+            }
 
             //Ball movement
             ballPos += glm::vec3(deltaTime * k_ballSpeed.x, deltaTime * k_ballSpeed.y, 0.0f);
@@ -364,7 +393,7 @@ int main(int, char* []) {
                 if (ballPos.x <= barPos.x + barSize.x / 2.0f 
                     && ballPos.x >= barPos.x - barSize.x / 2.0f 
                     && ballPos.y > barPos.y) {
-                    k_ballSpeed.y = 4.0f;
+                    k_ballSpeed.y = -1.0 * k_ballSpeed.y;
                 }
             }
             
@@ -378,33 +407,33 @@ int main(int, char* []) {
                    
                     if (bottomDistance_BlockBall < 0.05f && destroyBlock[j][i] != true) {
                         if (ballPos.x <= blockPositions[j][i].x + blockSize.x / 2.0f && ballPos.x >= blockPositions[j][i].x - blockSize.x / 2.0f) {
-                            k_ballSpeed.y = -4.0f;
+                            k_ballSpeed.y = -1.0f * k_ballSpeed.y;
                             destroyBlock[j][i] = true;
                         }
 
                         else if (rightDistance_BlockBall < 0.05f) {
-                            k_ballSpeed.x = 3.0f;
+                            k_ballSpeed.x = -1.0 * k_ballSpeed.x;
                             destroyBlock[j][i] = true;
                         }
 
                         else if (leftDistance_BlockBall < 0.05f) {
-                            k_ballSpeed.x = -3.0f;
+                            k_ballSpeed.x = -1.0 * k_ballSpeed.x;
                             destroyBlock[j][i] = true;
                         }
                     }
                     if (topDistance_BlockBall < 0.05f && destroyBlock[j][i] != true) {
                         if (ballPos.x <= blockPositions[j][i].x + blockSize.x / 2.0f && ballPos.x >= blockPositions[j][i].x - blockSize.x / 2.0f) {
-                            k_ballSpeed.y = 4.0f;
+                            k_ballSpeed.y = -1.0f*k_ballSpeed.y;
                             destroyBlock[j][i] = true;
                         }
 
                         else if (rightDistance_BlockBall < 0.05f) {
-                            k_ballSpeed.x = 3.0f;
+                            k_ballSpeed.x = -1.0f * k_ballSpeed.x;
                             destroyBlock[j][i] = true;
                         }
 
                         else if (leftDistance_BlockBall < 0.05f) {
-                            k_ballSpeed.x = -3.0f;
+                            k_ballSpeed.x = -1.0* k_ballSpeed.x;
                             destroyBlock[j][i] = true;
                         }
                     }
@@ -414,18 +443,18 @@ int main(int, char* []) {
             //Up wall collisions
             if (ballPos.y >= 4.0f)
             {
-                k_ballSpeed.y = -4.0f;
+                k_ballSpeed.y = -1.0 * k_ballSpeed.y;
             }
 
             //Right and left wall collisions
             else if (ballPos.x <= -backGroundSize.x / 2.0f + ballRadius * 2.0f)
             {
-                k_ballSpeed.x = 3.0f;
+                k_ballSpeed.x = -1.0 * k_ballSpeed.x;
             }
             
             else if (ballPos.x >= backGroundSize.x / 2.0f - ballRadius * 2.0f)
             {
-                k_ballSpeed.x = -3.0f;
+                k_ballSpeed.x = -1.0 * k_ballSpeed.x;
             }
         }
      

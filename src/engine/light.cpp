@@ -49,6 +49,9 @@ void PointLight::setShader(const Shader& shader, uint32_t unit) {
 	shader.set(("pointLight[" + number + "].quadratic").c_str(), _quadratic);
 }
 
+void PointLight::setPosition(glm::vec3 position) {
+	_position = position;
+}
 
 
 SpotLight::SpotLight(glm::vec3 position, glm::vec3 direction, glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, float constant, float linear, float quadratic, float cutOff, float outerCutOff)
