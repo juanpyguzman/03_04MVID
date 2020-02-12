@@ -42,6 +42,9 @@ glm::mat4 Camera::getViewMatrixNoGLM() const {
     return glm::mat4(glm::transpose(matrixRUD)) * matrixP;
 }
 
+void Camera::setFront(glm::vec3 front) {
+    _front = front;
+}
 
 float Camera::getFOV() const {
     return _fov;

@@ -8,7 +8,9 @@ in vec2 uv;
 
 in vec4 fragPosLightSpace;
 
-in vec3 tangentLightPos;
+in vec3 tangentDirLightPos;
+in vec3 tangentPointLightPos0;
+in vec3 tangentPointLightPos1;
 in vec3 tangentViewPos;
 in vec3 tangentFragPos;
 
@@ -44,7 +46,7 @@ struct PointLight {
     float linear;
     float quadratic;
 };
-#define NUMBER_POINT_LIGHTS 1
+#define NUMBER_POINT_LIGHTS 2
 uniform PointLight pointLight[NUMBER_POINT_LIGHTS];
 
 uniform vec3 viewPos;
@@ -78,7 +80,7 @@ float ShadowCalculation(vec4 fragPosLightSpace, float bias) {
 vec3 calcDirectionalLight(DirLight light, vec3 normal, vec3 viewDir, vec3 albedoMap) {
     vec3 ambient = albedoMap * light.ambient;
 
-    vec3 lightDir = normalize(tangentLightPos - tangentFragPos);
+    vec3 lightDir = normalize(-dirLight.direction);
     float diff = max(dot(normal, lightDir), 0.0);
     vec3 diffuse = diff * albedoMap * light.diffuse;
 
@@ -94,7 +96,7 @@ vec3 calcDirectionalLight(DirLight light, vec3 normal, vec3 viewDir, vec3 albedo
     return phong;
 }
 
-vec3 calcPointLight(PointLight light, vec3 normal, vec3 viewDir, vec3 fragPos, vec3 albedoMap) {
+vec3 calcPointLight(PointLight light, vec3 tangentPointLightPos, vec3 normal, vec3 viewDir, vec3 fragPos, vec3 albedoMap) {
     float distance = length(light.position - fragPos);
     float attenuation = 1.0 / (light.constant +
         light.linear * distance +
@@ -102,7 +104,7 @@ vec3 calcPointLight(PointLight light, vec3 normal, vec3 viewDir, vec3 fragPos, v
 
     vec3 ambient = albedoMap * light.ambient;
 
-    vec3 lightDir = normalize(tangentLightPos - tangentFragPos);
+    vec3 lightDir = normalize(tangentPointLightPos - tangentFragPos);
     float diff = max(dot(normal, lightDir), 0.0);
     vec3 diffuse = diff * albedoMap * light.diffuse;
 
@@ -110,37 +112,48 @@ vec3 calcPointLight(PointLight light, vec3 normal, vec3 viewDir, vec3 fragPos, v
     float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
     vec3 specular = spec * vec3(texture(material.specular, uv)) * light.specular;
 
-    return (ambient + diffuse + specular) * attenuation;
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    float shadow = ShadowCalculation(fragPosLightSpace, bias);
+    
+    vec3 phong = ambient + ((1.0 - shadow) * (diffuse + specular));
+
+    return phong * attenuation;
     }
 
 void main() {
     if (isModel){
     
+        vec3 tangentPointLightPosArray[2];
+	    tangentPointLightPosArray[0] = tangentPointLightPos0;
+	    tangentPointLightPosArray[1] = tangentPointLightPos1;
+
         vec3 normal = vec3(texture(texture_normal1, uv));
         normal = normalize(normal * 2.0 - 1.0);
 
         vec3 albedo = vec3(texture(texture_diffuse1, uv));
         vec3 ambient = albedo * dirLight.ambient;
 
-        vec3 lightDir = normalize(tangentLightPos - tangentFragPos);
+        vec3 lightDir = normalize(tangentDirLightPos - tangentFragPos);
         float diff = max(dot(normal, lightDir), 0.0);
         vec3 diffuse = diff * albedo * dirLight.diffuse;
 
         vec3 viewDir = normalize(tangentViewPos - tangentFragPos);
-        vec3 halfwayDir = normalize(lightDir + viewDir);
-        float spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
-        vec3 specular = spec * vec3(texture(texture_specular1, uv)) * dirLight.specular;
-
-        float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
-        float shadow = ShadowCalculation(fragPosLightSpace, bias);
+        
+        vec3 phong = calcDirectionalLight(dirLight, normal, viewDir, albedo);
+                
+        for (int i = 0; i < NUMBER_POINT_LIGHTS; ++i) {
+            phong += calcPointLight(pointLight[i], tangentPointLightPosArray[0], normal, viewDir, fragPos, albedo);
+	    }
     
-        vec3 phong = ambient + ((1.0 - shadow) * (diffuse + specular));
         FragColor = vec4(phong, 1.0f);
-
 	}
 
     else {
-    
+    	
+	    vec3 tangentPointLightPosArray[2];
+	    tangentPointLightPosArray[0] = tangentPointLightPos0;
+	    tangentPointLightPosArray[1] = tangentPointLightPos1;
+	
         vec3 normal = vec3(texture(material.normal, uv));
         normal = normalize(normal * 2.0 - 1.0);
 
@@ -153,7 +166,7 @@ void main() {
 
         
         for (int i = 0; i < NUMBER_POINT_LIGHTS; ++i) {
-            phong += calcPointLight(pointLight[i], normal, viewDir, fragPos, albedo);
+            phong += calcPointLight(pointLight[i], tangentPointLightPosArray[0], normal, viewDir, fragPos, albedo);
 	    }
 
         FragColor = vec4(phong, 1.0f);

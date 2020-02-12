@@ -1,3 +1,16 @@
+/* // ARKANOID //
+    Actividad final asignatura "Programación avanzada I
+    Máster en Diseño y Desarrollo de Videojuegos
+    Profesor: Iván Fuertes Torrecilla
+
+    Autor: Juan Pablo Guzmán Fernández
+
+    Instrucciones: 
+        - Pulse la barra espaciadora para comenzar. 
+        - Use las flechas derecha e izquierda para mover la barra.
+        - Dispone de 3 vidas.
+*/
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -12,17 +25,18 @@
 #include "engine/geometry/quad.hpp"
 #include "engine/model.hpp"
 #include "engine/light.hpp"
+#include "engine/fbo.hpp"
 #include <iostream>
 
-Camera camera(glm::vec3(0.0f, 0.0f, 10.0f));
+Camera camera(glm::vec3(0.0f, -3.0f, 10.0f));
 
 //Directional Light
 DirectionalLight dirLight(
     glm::vec3(-1.0f, -0.5f, -3.0f), //Direction
     glm::vec3(1.0f, 0.5f, 3.0f),    //Position (for shadow mapping)
-    glm::vec3(0.2f, 0.2f, 0.2f),    //Ambient
-    glm::vec3(0.8f, 0.8f, 0.8f),    //Diffuse
-    glm::vec3(1.0f, 1.0f, 1.0f)     //Specular
+    glm::vec3(0.1f, 0.1f, 0.1f),    //Ambient
+    glm::vec3(0.1f, 0.1f, 0.1f),    //Diffuse
+    glm::vec3(0.2f, 0.2f, 0.2f)     //Specular
 );
 
 //Background
@@ -47,24 +61,35 @@ uint16_t lifes = 3;
 //Ball
 glm::vec3 ballPos(barPos.x, barPos.y + 0.3f, barPos.z);
 float ballRadius = 0.1f;
-glm::vec2 k_ballSpeed(3.0f, 4.0f);
+const float ballSpeedX = 3.0f;
+const float ballSpeedY = 4.0f;
+glm::vec2 k_ballSpeed(ballSpeedX, ballSpeedY);
 
 //PointLight for the ball
-uint16_t numberPointLights = 1;
+uint16_t numberPointLights = 2;
 PointLight* pointLight = new PointLight[numberPointLights]
 {   
+    {glm::vec3(1.0f, 0.5f, 3.0f),   //Position
+    glm::vec3(0.1f, 0.1f, 0.1f),    //Ambient
+    glm::vec3(0.6f, 0.6f, 0.6f),    //Diffuse
+    glm::vec3(1.0f, 1.0f, 1.0f),    //Specular
+    1.0f,                           //Constant
+    0.0f,                           //Linear
+    0.0f},                          //Quadratic
+
     {glm::vec3(ballPos),            //Position
-    glm::vec3(0.2f, 0.2f, 0.1f),    //Ambient
+    glm::vec3(0.5f, 0.5f, 0.3f),    //Ambient
     glm::vec3(0.9f, 0.9f, 0.2f),    //Diffuse
     glm::vec3(0.9f, 0.9f, 0.2f),    //Specular
     1.0f,                           //Constant
     1.7f,                           //Linear
-    2.8f }                          //Quadratic
+    2.8f}                           //Quadratic
 };
 
 //Other constants
 const uint32_t k_shadow_height = 1024;
 const uint32_t k_shadow_width = 1024;
+FBO fboShadow(k_shadow_width, k_shadow_height);
 const float k_shadow_near = 1.0f;
 const float k_shadow_far = 10.5f;
 
@@ -131,35 +156,6 @@ void onMouseMoved(float x, float y) {
 
 void onScrollMoved(float x, float y) {
     camera.handleMouseScroll(y);
-}
-
-std::pair<uint32_t, uint32_t> createFBO() {
-    uint32_t fbo;
-    glGenFramebuffers(1, &fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
-    uint32_t depthMap;
-    glGenTextures(1, &depthMap);
-    glBindTexture(GL_TEXTURE_2D, depthMap);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, k_shadow_width, k_shadow_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    float borderColor[]{ 1.0f, 1.0f, 1.0f, 1.0f };
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        std::cout << "Framebuffer Incomplete" << std::endl;
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    return std::make_pair(fbo, depthMap);
 }
 
 void renderScene(const Shader& shader, const Geometry& quad, const Geometry& cube, const Geometry& sphere, const Model& ball,
@@ -248,7 +244,7 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere, 
     glClear(GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
-    const glm::mat4 lightProjection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, k_shadow_near, k_shadow_far);
+    const glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, k_shadow_near, k_shadow_far);
     const glm::mat4 lightView = glm::lookAt(dirLight.getPosition(), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     const glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
@@ -263,6 +259,7 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere, 
     glViewport(0, 0, Window::instance()->getWidth(), Window::instance()->getHeight());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    camera.setFront(-camera.getPosition());
     glm::mat4 view = camera.getViewMatrix();
     glm::mat4 proj = glm::perspective(glm::radians(camera.getFOV()), static_cast<float>(Window::instance()->getWidth()) / Window::instance()->getHeight(), 0.1f, 100.0f);
 
@@ -278,8 +275,9 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere, 
     dirLight.setShader(s_phong);
 
     //Lightball
-    pointLight->setPosition(ballPos);
-    pointLight->setShader(s_phong, 0);
+    pointLight[0].setShader(s_phong, 0);
+    pointLight[1].setShader(s_phong, 1);
+    pointLight[1].setPosition(ballPos);
 
     s_phong.set("material.shininess", 64);
 
@@ -313,14 +311,8 @@ int main(int, char* []) {
     const Shader s_depth("../projects/FINAL/depth.vs", "../projects/FINAL/depth.fs");
     const Shader s_debug("../projects/FINAL/debug.vs", "../projects/FINAL/debug.fs");
     const Shader s_light("../projects/FINAL/light.vs", "../projects/FINAL/light.fs");
-    
-    
-    /*
-    const Texture t_albedo("../assets/textures/bricks_albedo.png", Texture::Format::RGB);
-    const Texture t_specular("../assets/textures/bricks_specular.png", Texture::Format::RGB);
-    const Texture t_normal("../assets/textures/bricks_normal.png", Texture::Format::RGB);
-    */
 
+    //Background
     const Texture t_albedo("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_basecolor.jpg", Texture::Format::RGB);
     const Texture t_specular("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_metallic.jpg", Texture::Format::RGB);
     const Texture t_normal("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_normal.jpg", Texture::Format::RGB);
@@ -341,7 +333,8 @@ int main(int, char* []) {
     const Cube cube(1.0f);
     const Cube sphere(1.0f);
 
-    auto fbo = createFBO();
+    //FBO creation
+    auto fbo = fboShadow.createShadowFBO();
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
@@ -393,7 +386,7 @@ int main(int, char* []) {
                 if (ballPos.x <= barPos.x + barSize.x / 2.0f 
                     && ballPos.x >= barPos.x - barSize.x / 2.0f 
                     && ballPos.y > barPos.y) {
-                    k_ballSpeed.y = -1.0 * k_ballSpeed.y;
+                    k_ballSpeed.y = ballSpeedY;
                 }
             }
             
@@ -407,33 +400,33 @@ int main(int, char* []) {
                    
                     if (bottomDistance_BlockBall < 0.05f && destroyBlock[j][i] != true) {
                         if (ballPos.x <= blockPositions[j][i].x + blockSize.x / 2.0f && ballPos.x >= blockPositions[j][i].x - blockSize.x / 2.0f) {
-                            k_ballSpeed.y = -1.0f * k_ballSpeed.y;
+                            k_ballSpeed.y = -ballSpeedY;
                             destroyBlock[j][i] = true;
                         }
 
-                        else if (rightDistance_BlockBall < 0.05f) {
-                            k_ballSpeed.x = -1.0 * k_ballSpeed.x;
+                        else if (rightDistance_BlockBall < 0.05f && destroyBlock[j][i] != true) {
+                            k_ballSpeed.x = ballSpeedX;
                             destroyBlock[j][i] = true;
                         }
 
-                        else if (leftDistance_BlockBall < 0.05f) {
-                            k_ballSpeed.x = -1.0 * k_ballSpeed.x;
+                        else if (leftDistance_BlockBall < 0.05f && destroyBlock[j][i] != true) {
+                            k_ballSpeed.x = -ballSpeedX;
                             destroyBlock[j][i] = true;
                         }
                     }
                     if (topDistance_BlockBall < 0.05f && destroyBlock[j][i] != true) {
                         if (ballPos.x <= blockPositions[j][i].x + blockSize.x / 2.0f && ballPos.x >= blockPositions[j][i].x - blockSize.x / 2.0f) {
-                            k_ballSpeed.y = -1.0f*k_ballSpeed.y;
+                            k_ballSpeed.y = ballSpeedY;
                             destroyBlock[j][i] = true;
                         }
 
-                        else if (rightDistance_BlockBall < 0.05f) {
-                            k_ballSpeed.x = -1.0f * k_ballSpeed.x;
+                        else if (rightDistance_BlockBall < 0.05f && destroyBlock[j][i] != true) {
+                            k_ballSpeed.x = ballSpeedX;
                             destroyBlock[j][i] = true;
                         }
 
-                        else if (leftDistance_BlockBall < 0.05f) {
-                            k_ballSpeed.x = -1.0* k_ballSpeed.x;
+                        else if (leftDistance_BlockBall < 0.05f && destroyBlock[j][i] != true) {
+                            k_ballSpeed.x = -ballSpeedX;
                             destroyBlock[j][i] = true;
                         }
                     }
@@ -443,18 +436,18 @@ int main(int, char* []) {
             //Up wall collisions
             if (ballPos.y >= 4.0f)
             {
-                k_ballSpeed.y = -1.0 * k_ballSpeed.y;
+                k_ballSpeed.y = -ballSpeedY;
             }
 
             //Right and left wall collisions
             else if (ballPos.x <= -backGroundSize.x / 2.0f + ballRadius * 2.0f)
             {
-                k_ballSpeed.x = -1.0 * k_ballSpeed.x;
+                k_ballSpeed.x = ballSpeedX;
             }
             
             else if (ballPos.x >= backGroundSize.x / 2.0f - ballRadius * 2.0f)
             {
-                k_ballSpeed.x = -1.0 * k_ballSpeed.x;
+                k_ballSpeed.x = -ballSpeedX;
             }
         }
      

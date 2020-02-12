@@ -29,6 +29,7 @@ class Camera {
         glm::mat4 getViewMatrixNoGLM() const;
 
 
+        void setFront(glm::vec3 front);
         float getFOV() const;
         glm::vec3 getPosition() const;
         glm::vec3 getCameraFront() const;
