@@ -8,8 +8,11 @@ class FBO {
 	public:
 		FBO(uint32_t k_height, uint32_t k_width);
 		std::pair<uint32_t, uint32_t> createShadowFBO();
+		std::tuple<uint32_t, uint32_t, uint32_t> createPostProcessFBO();
 		uint32_t createFBO(uint32_t fbo);
 		uint32_t createDepthMap(uint32_t depthMap);
+		uint32_t createTextureColor(uint32_t textureColor);
+		uint32_t createRBO(uint32_t rbo);
 
 		
 	private:

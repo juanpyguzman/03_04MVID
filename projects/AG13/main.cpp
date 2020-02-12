@@ -10,10 +10,13 @@
 #include "engine/window.hpp"
 #include "engine/geometry/sphere.hpp"
 #include "engine/geometry/quad.hpp"
+#include "engine/fbo.hpp"
 #include <iostream>
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
+FBO postProcessFBO(Window::instance()->getWidth(), Window::instance()->getHeight());
 
 float lastFrame = 0.0f;
 float lastX, lastY;
@@ -63,34 +66,6 @@ void onMouseMoved(float x, float y) {
 
 void onScrollMoved(float x, float y) {
     camera.handleMouseScroll(y);
-}
-
-std::tuple<uint32_t, uint32_t, uint32_t> createFBO() {
-    uint32_t fbo;
-    glGenFramebuffers(1, &fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
-    uint32_t textureColor;
-    glGenTextures(1, &textureColor);
-    glBindTexture(GL_TEXTURE_2D, textureColor);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Window::instance()->getWidth(), Window::instance()->getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColor, 0);
-
-    uint32_t rbo;
-    glGenRenderbuffers(1, &rbo);
-    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, Window::instance()->getWidth(), Window::instance()->getHeight());
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        std::cout << "Framebuffer Incomplete" << std::endl;
-    }
-
-    return std::make_tuple(fbo, textureColor, rbo);
 }
 
 void render(const Geometry& quad, const Geometry& cube, const Shader& s_phong, const Shader& s_fbo,
@@ -165,7 +140,7 @@ int main(int, char* []) {
     const Quad quad(2.0f);
     const Cube cube(1.0f);
 
-    auto fbo = createFBO();
+    auto fbo = postProcessFBO.createPostProcessFBO();
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
