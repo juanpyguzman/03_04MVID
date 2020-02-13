@@ -25,6 +25,8 @@ set(ENGINE_SRC_FILES
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/window.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/light.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/fbo.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/engine/material.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/engine/drawable.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/geometry/cube.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/geometry/cube-procedural.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/engine/geometry/cube-wrapped.cpp
@@ -43,6 +45,8 @@ set(ENGINE_HEADER_FILES
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/window.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/light.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/fbo.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/include/engine/material.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/include/engine/drawable.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/geometry/cube.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/geometry/cube-procedural.hpp
     ${CMAKE_CURRENT_LIST_DIR}/include/engine/geometry/cube-wrapped.hpp

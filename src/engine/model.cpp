@@ -6,6 +6,8 @@
 #include <glad/glad.h>
 #include <stb_image.h>
 
+Model::Model() {};
+
 Model::Model(std::string const &path, bool gamma) : gammaCorrection_(gamma) {
   loadModel(path);
 }

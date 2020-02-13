@@ -65,7 +65,6 @@ uint32_t FBO::createTextureColor(uint32_t textureColor) {
     glGenTextures(1, &textureColor);
     glBindTexture(GL_TEXTURE_2D, textureColor);
    
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Window::instance()->getWidth(), Window::instance()->getHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _k_width, _k_height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -80,7 +79,6 @@ uint32_t FBO::createTextureColor(uint32_t textureColor) {
 uint32_t FBO::createRBO(uint32_t rbo) {
     glGenRenderbuffers(1, &rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-//    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, Window::instance()->getWidth(), Window::instance()->getHeight());
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, _k_width, _k_height);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
