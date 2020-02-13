@@ -14,6 +14,7 @@ EJ12.01 - A partir de la escena con dos quads de la AG12, implementar el normal 
 #include "engine/window.hpp"
 #include "engine/geometry/sphere.hpp"
 #include "engine/geometry/quad.hpp"
+#include "engine/material.hpp"
 
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
@@ -69,7 +70,8 @@ void onScrollMoved(float x, float y) {
 }
 
 void render(const Geometry& object, const Shader& s_phong, const Shader& s_normal,
-    const Texture& t_albedo, const Texture& t_specular, const Texture& t_normal) {
+    const Texture& t_albedo, const Texture& t_specular, const Texture& t_normal,
+    const Material& material) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 view = camera.getViewMatrix();
@@ -120,10 +122,11 @@ void render(const Geometry& object, const Shader& s_phong, const Shader& s_norma
         s_normal.set("light.diffuse", 0.5f, 0.5f, 0.5f);
         s_normal.set("light.specular", 1.0f, 1.0f, 1.0f);
 
-        t_albedo.use(s_normal, "material.diffuse", 0);
+        /*t_albedo.use(s_normal, "material.diffuse", 0);
         t_specular.use(s_normal, "material.specular", 1);
         t_normal.use(s_normal, "material.normal", 2);
-        s_normal.set("material.shininess", 32);
+        s_normal.set("material.shininess", 32);*/
+        material.setMaterial();
 
         object.render();
     }
@@ -140,6 +143,8 @@ int main(int, char* []) {
     const Texture t_specular("../assets/textures/bricks_specular.png", Texture::Format::RGB);
     const Texture t_normal("../assets/textures/bricks_normal.png", Texture::Format::RGB);
     const Quad quad(2.0f);
+
+    Material material(t_albedo, t_specular, t_normal, s_normal);
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
@@ -160,7 +165,7 @@ int main(int, char* []) {
         lastFrame = currentFrame;
 
         handleInput(deltaTime);
-        render(quad, s_phong, s_normal, t_albedo, t_specular, t_normal);
+        render(quad, s_phong, s_normal, t_albedo, t_specular, t_normal, material);
         window->frame();
     }
 

@@ -26,6 +26,8 @@
 #include "engine/model.hpp"
 #include "engine/light.hpp"
 #include "engine/fbo.hpp"
+#include "engine/material.hpp"
+#include "engine/drawable.hpp"
 #include <iostream>
 
 Camera camera(glm::vec3(0.0f, -3.0f, 10.0f));
@@ -65,10 +67,11 @@ const float ballSpeedX = 3.0f;
 const float ballSpeedY = 4.0f;
 glm::vec2 k_ballSpeed(ballSpeedX, ballSpeedY);
 
-//PointLight for the ball
+//PointLights
 uint16_t numberPointLights = 2;
 PointLight* pointLight = new PointLight[numberPointLights]
-{   
+{  
+    //PointLight
     {glm::vec3(1.0f, 0.5f, 3.0f),   //Position
     glm::vec3(0.1f, 0.1f, 0.1f),    //Ambient
     glm::vec3(0.6f, 0.6f, 0.6f),    //Diffuse
@@ -77,6 +80,7 @@ PointLight* pointLight = new PointLight[numberPointLights]
     0.0f,                           //Linear
     0.0f},                          //Quadratic
 
+    //Light Ball
     {glm::vec3(ballPos),            //Position
     glm::vec3(0.5f, 0.5f, 0.3f),    //Ambient
     glm::vec3(0.9f, 0.9f, 0.2f),    //Diffuse
@@ -132,6 +136,7 @@ void onKeyPress(int key, int action) {
         Window::instance()->setCaptureMode(false);
     }
 
+    //Starting game
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
         if (lifes > 0) {
             startGame = true;
@@ -158,84 +163,37 @@ void onScrollMoved(float x, float y) {
     camera.handleMouseScroll(y);
 }
 
-void renderScene(const Shader& shader, const Geometry& quad, const Geometry& cube, const Geometry& sphere, const Model& ball,
-    const Texture& t_albedo, const Texture& t_specular, const Texture& t_normal,
-    const Texture& t_bar_albedo, const Texture& t_bar_specular, const Texture& t_bar_normal,
-    const Texture& t_ball_albedo, const Texture& t_ball_specular, const Texture& t_ball_normal) {
-
-    bool isModel;
+void renderScene(const Shader& shader,
+    const Drawable& d_background, const Drawable& d_bar, const Drawable& d_ball) {
 
     //Fondo
-    isModel = false;
-    t_albedo.use(shader, "material.diffuse", 0);
-    t_specular.use(shader, "material.specular", 1);
-    t_normal.use(shader, "material.normal", 2);
-    glm::mat4 model = glm::mat4(1.0);
-    model = glm::translate(model, glm::vec3(0.0f, 0.0f, -0.5f));
-    model = glm::scale(model, glm::vec3(backGroundSize));
-    shader.set("model", model);
-    glm::mat3 normalMat = glm::inverse(glm::transpose(glm::mat3(model)));
-    shader.set("normalMat", normalMat);
-    shader.set("isModel", isModel);
-    quad.render();
+    d_background.setDrawable(shader, glm::vec3(0.0f, 0.0f, -0.5f), 0.0f, glm::vec3(0.0f), glm::vec3(backGroundSize));
 
     //Bar
-    t_bar_albedo.use(shader, "material.diffuse", 0);
-    t_bar_specular.use(shader, "material.specular", 1);
-    t_bar_normal.use(shader, "material.normal", 2);
-    model = glm::mat4(1.0);
-    model = glm::translate(model, glm::vec3(barPos));
-    model = glm::scale(model, glm::vec3(barSize));
-    shader.set("model", model);
-    normalMat = glm::inverse(glm::transpose(glm::mat3(model)));
-    shader.set("normalMat", normalMat);
-    shader.set("isModel", isModel);
-    cube.render();
+    d_bar.setDrawable(shader, glm::vec3(barPos), 0.0f, glm::vec3(0.0f), glm::vec3(barSize));
 
     //Blocks
     for (int j = 0; j < numberOfRows; j++) {
         for (int i = 0; i < numberOfBlocks; i++) {
             if (!destroyBlock[j][i]) {
-                t_bar_albedo.use(shader, "material.diffuse", 0);
-                t_bar_specular.use(shader, "material.specular", 1);
-                t_bar_normal.use(shader, "material.normal", 2);
-                model = glm::mat4(1.0);
-                model = glm::translate(model, glm::vec3(blockPositions[j][i]));
-                model = glm::scale(model, glm::vec3(blockSize));
-                shader.set("model", model);
-                normalMat = glm::inverse(glm::transpose(glm::mat3(model)));
-                shader.set("normalMat", normalMat);
-                shader.set("isModel", isModel);
-                cube.render();
+                d_bar.setDrawable(shader, glm::vec3(blockPositions[j][i]), 0.0f, glm::vec3(0.0f), glm::vec3(blockSize));
             }
         };
     };
 
     //Model ball
-    isModel = true;
-    t_ball_albedo.use(shader, "material.diffuse", 0);
-    t_ball_specular.use(shader, "material.specular", 1);
-    t_ball_normal.use(shader, "material.normal", 2);
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(ballPos));
+    glm::vec3 rotation;
     if (startGame) {
-        model = glm::rotate(model, static_cast<float>(glfwGetTime()), glm::vec3(-k_ballSpeed.y * 90.0f, 0.0f, 0.0f));
+        rotation = glm::vec3(-k_ballSpeed.y * 90.0f, 0.0f, 0.0f);
     }
-    model = glm::scale(model, glm::vec3(ballRadius));
-    shader.set("model", model);
-
-    normalMat = glm::inverse(glm::transpose(glm::mat3(model)));
-    shader.set("normalMat", normalMat);
-    shader.set("material.shininess", 32);
-    shader.set("isModel", isModel);
-    ball.render(shader);
+    else {
+        rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+    }
+    d_ball.setDrawable(shader, ballPos, static_cast<float>(glfwGetTime()), rotation, glm::vec3(ballRadius));
 }
 
-void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere, const Model& ball,
-    const Shader& s_phong, const Shader& s_depth, const Shader& s_debug, const Shader& s_light,
-    const Texture& t_albedo, const Texture& t_specular, const Texture& t_normal,
-    const Texture& t_bar_albedo, const Texture& t_bar_specular, const Texture& t_bar_normal,
-    const Texture& t_ball_albedo, const Texture& t_ball_specular, const Texture& t_ball_normal,
+void render(const Shader& s_phong, const Shader& s_depth, const Shader& s_debug, const Shader& s_light,
+    const Drawable& d_background, const Drawable& d_bar, const Drawable& d_ball,
     const uint32_t fbo, const uint32_t fbo_texture) {
 
     //FIRST PASS
@@ -251,10 +209,10 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere, 
     s_depth.use();
     s_depth.set("lightSpaceMatrix", lightSpaceMatrix);
     //glCullFace(GL_FRONT);
-    renderScene(s_depth, quad, cube, sphere, ball, t_albedo, t_specular, t_normal, t_bar_albedo, t_bar_specular, t_bar_normal, t_ball_albedo, t_ball_specular, t_ball_normal);
+    renderScene(s_depth, d_background, d_bar, d_ball);
     //glCullFace(GL_BACK);
 
-//SECOND PASS
+    //SECOND PASS
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, Window::instance()->getWidth(), Window::instance()->getHeight());
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -264,10 +222,8 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere, 
     glm::mat4 proj = glm::perspective(glm::radians(camera.getFOV()), static_cast<float>(Window::instance()->getWidth()) / Window::instance()->getHeight(), 0.1f, 100.0f);
 
     s_phong.use();
-
     s_phong.set("view", view);
     s_phong.set("proj", proj);
-
     s_phong.set("viewPos", camera.getPosition());
 
 
@@ -279,15 +235,14 @@ void render(const Geometry& quad, const Geometry& cube, const Geometry& sphere, 
     pointLight[1].setShader(s_phong, 1);
     pointLight[1].setPosition(ballPos);
 
-    s_phong.set("material.shininess", 64);
-
+    //Shadows
     s_phong.set("lightSpaceMatrix", lightSpaceMatrix);
 
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, fbo_texture);
     s_phong.set("depthMap", 3);
 
-    renderScene(s_phong, quad, cube, sphere, ball, t_albedo, t_specular, t_normal, t_bar_albedo, t_bar_specular, t_bar_normal, t_ball_albedo, t_ball_specular, t_ball_normal);
+    renderScene(s_phong, d_background, d_bar, d_ball);
 
     /*glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, Window::instance()->getWidth(), Window::instance()->getHeight());
@@ -312,26 +267,32 @@ int main(int, char* []) {
     const Shader s_debug("../projects/FINAL/debug.vs", "../projects/FINAL/debug.fs");
     const Shader s_light("../projects/FINAL/light.vs", "../projects/FINAL/light.fs");
 
+    //Geometries
+    const Quad quad(1.0f);
+    const Cube cube(1.0f);
+
     //Background
     const Texture t_albedo("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_basecolor.jpg", Texture::Format::RGB);
     const Texture t_specular("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_metallic.jpg", Texture::Format::RGB);
     const Texture t_normal("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_normal.jpg", Texture::Format::RGB);
+    Material material_background(t_albedo, t_specular, t_normal, 64, s_phong);
+    Drawable d_background(quad, material_background);
 
     //Bar textures
     const Texture t_bar_albedo("../assets/FINAL/textures/bar/Metal_Plate_041_basecolor.jpg", Texture::Format::RGB);
     const Texture t_bar_specular("../assets/FINAL/textures/bar/Metal_Plate_041_metallic.jpg", Texture::Format::RGB);
     const Texture t_bar_normal("../assets/FINAL/textures/bar/Metal_Plate_041_normal.jpg", Texture::Format::RGB);
-    
+    Material material_bar(t_bar_albedo, t_bar_specular, t_bar_normal, 128, s_phong);
+    Drawable d_bar(cube, material_bar);
+
     //Ball model
-    const Model ball("../assets/FINAL/models/ball/sci_fi_ball.obj");
+    const Model model_ball("../assets/FINAL/models/ball/sci_fi_ball.obj");
 
     const Texture t_ball_albedo("../assets/FINAL/models/ball/textures/sci_fi_ball_diffuse.png", Texture::Format::RGB);
     const Texture t_ball_specular("../assets/FINAL/models/ball/textures/sci_fi_ball_specular.png", Texture::Format::RGB);
     const Texture t_ball_normal("../assets/FINAL/models/ball/textures/sci_fi_ball_normal.png", Texture::Format::RGB);
-
-    const Quad quad(1.0f);
-    const Cube cube(1.0f);
-    const Cube sphere(1.0f);
+    Material material_ball(t_ball_albedo, t_bar_specular, t_bar_normal, 32, s_phong);
+    Drawable d_ball(model_ball, material_ball);
 
     //FBO creation
     auto fbo = fboShadow.createShadowFBO();
@@ -358,10 +319,10 @@ int main(int, char* []) {
         lastFrame = currentFrame;
 
         handleInput(deltaTime);
-        render(quad, cube, sphere, ball, s_phong, s_depth, s_debug, s_light,
-            t_albedo, t_specular, t_normal,
-            t_bar_albedo, t_bar_specular, t_bar_normal,
-            t_ball_albedo, t_ball_specular, t_ball_normal,
+        render(s_phong, s_depth, s_debug, s_light,
+            d_background,
+            d_bar,
+            d_ball,
             fbo.first, fbo.second);
 
         if (!startGame && lifes>0) {
@@ -451,7 +412,6 @@ int main(int, char* []) {
             }
         }
      
-
         window->frame();
     }
     
