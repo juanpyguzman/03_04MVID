@@ -114,6 +114,7 @@ bool firstMouse = true;
 
 bool startGame = false;
 
+FBO postProcessFBO(Window::instance()->getWidth(), Window::instance()->getHeight());
 
 void handleInput(float dt) {
     Input* input = Input::instance();
@@ -215,11 +216,13 @@ void renderScene(const Shader& shader,
     d_ball.setDrawable(shader, ballPos, static_cast<float>(glfwGetTime()), rotation, glm::vec3(ballRadius));
 }
 
-void render(const Shader& s_phong, const Shader& s_depth, const Shader& s_debug,
+void render(const Shader& s_phong, const Shader& s_depth, const Shader& s_debug, const Shader& s_post,
     const Drawable& d_background, const Drawable& d_bar, const Drawable& d_block, const Drawable& d_walls, const Drawable& d_ball, const Drawable& d_powerUp,
-    const uint32_t fbo, const uint32_t fbo_texture) {
+    const Geometry& quadPostProcess,
+    const uint32_t fbo, const uint32_t fbo_texture,
+    const uint32_t fbo_post, const uint32_t fbo_post_texture) {
 
-    //FIRST PASS
+    //FIRST PASS: Shadow mapping
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glViewport(0, 0, k_shadow_width, k_shadow_height);
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -235,49 +238,101 @@ void render(const Shader& s_phong, const Shader& s_depth, const Shader& s_debug,
     renderScene(s_depth, d_background, d_bar, d_block, d_walls, d_ball, d_powerUp);
     //glCullFace(GL_BACK);
 
-    //SECOND PASS
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, Window::instance()->getWidth(), Window::instance()->getHeight());
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    if (lifes > 0) {
+        //SECOND PASS: SCREEN
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, Window::instance()->getWidth(), Window::instance()->getHeight());
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    camera.setFront(-camera.getPosition());
-    glm::mat4 view = camera.getViewMatrix();
-    glm::mat4 proj = glm::perspective(glm::radians(camera.getFOV()), static_cast<float>(Window::instance()->getWidth()) / Window::instance()->getHeight(), 0.1f, 100.0f);
+        camera.setFront(-camera.getPosition());
+        glm::mat4 view = camera.getViewMatrix();
+        glm::mat4 proj = glm::perspective(glm::radians(camera.getFOV()), static_cast<float>(Window::instance()->getWidth()) / Window::instance()->getHeight(), 0.1f, 100.0f);
 
-    s_phong.use();
-    s_phong.set("view", view);
-    s_phong.set("proj", proj);
-    s_phong.set("viewPos", camera.getPosition());
+        s_phong.use();
+        s_phong.set("view", view);
+        s_phong.set("proj", proj);
+        s_phong.set("viewPos", camera.getPosition());
 
 
-    //Luz direccional
-    dirLight.setShader(s_phong);
+        //Luz direccional
+        dirLight.setShader(s_phong);
 
-    //Lightball
-    pointLight[0].setShader(s_phong, 0);
-    pointLight[1].setShader(s_phong, 1);
-    pointLight[1].setPosition(ballPos);
+        //Lightball
+        pointLight[0].setShader(s_phong, 0);
+        pointLight[1].setShader(s_phong, 1);
+        pointLight[1].setPosition(ballPos);
 
-    //Shadows
-    s_phong.set("lightSpaceMatrix", lightSpaceMatrix);
+        //Shadows
+        s_phong.set("lightSpaceMatrix", lightSpaceMatrix);
 
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, fbo_texture);
-    s_phong.set("depthMap", 3);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, fbo_texture);
+        s_phong.set("depthMap", 3);
 
-    renderScene(s_phong, d_background, d_bar, d_block, d_walls, d_ball, d_powerUp);
+        renderScene(s_phong, d_background, d_bar, d_block, d_walls, d_ball, d_powerUp);
 
-    /*glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, Window::instance()->getWidth(), Window::instance()->getHeight());
-    glClear(GL_COLOR_BUFFER_BIT);
-    glDisable(GL_DEPTH_TEST);
+        /*glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, Window::instance()->getWidth(), Window::instance()->getHeight());
+        glClear(GL_COLOR_BUFFER_BIT);
+        glDisable(GL_DEPTH_TEST);
 
-    s_debug.use();
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, fbo_texture);
-    s_debug.set("depthMap", 0);
+        s_debug.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, fbo_texture);
+        s_debug.set("depthMap", 0);
 
-    quad.render();*/
+        quad.render();*/
+    }
+
+    else if (lifes == 0)
+    {
+        //SECOND PASS: PostProcess
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo_post);
+        glViewport(0, 0, Window::instance()->getWidth(), Window::instance()->getHeight());
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        camera.setFront(-camera.getPosition());
+        glm::mat4 view = camera.getViewMatrix();
+        glm::mat4 proj = glm::perspective(glm::radians(camera.getFOV()), static_cast<float>(Window::instance()->getWidth()) / Window::instance()->getHeight(), 0.1f, 100.0f);
+
+        s_phong.use();
+        s_phong.set("view", view);
+        s_phong.set("proj", proj);
+        s_phong.set("viewPos", camera.getPosition());
+
+
+        //Luz direccional
+        dirLight.setShader(s_phong);
+
+        //Lightball
+        pointLight[0].setShader(s_phong, 0);
+        pointLight[1].setShader(s_phong, 1);
+        pointLight[1].setPosition(ballPos);
+
+        //Shadows
+        s_phong.set("lightSpaceMatrix", lightSpaceMatrix);
+
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, fbo_texture);
+        s_phong.set("depthMap", 3);
+
+        renderScene(s_phong, d_background, d_bar, d_block, d_walls, d_ball, d_powerUp);
+
+        //THIRD PASS: SCREEN
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);
+
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        s_post.use();
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, fbo_post_texture);
+        s_post.set("screenTexture", 0);
+
+        quadPostProcess.render();
+    }
+    
 }
 
 int main(int, char* []) {
@@ -288,9 +343,11 @@ int main(int, char* []) {
     const Shader s_phong("../projects/FINAL/phong.vs", "../projects/FINAL/blinn.fs");
     const Shader s_depth("../projects/FINAL/depth.vs", "../projects/FINAL/depth.fs");
     const Shader s_debug("../projects/FINAL/debug.vs", "../projects/FINAL/debug.fs");
+    const Shader s_post("../projects/FINAL/fbo.vs", "../projects/FINAL/fbo.fs");
 
     //Geometries
     const Quad quad(1.0f);
+    const Quad quadPostProcess(2.0f);
     const Cube cube(1.0f);
 
     //Background
@@ -336,6 +393,7 @@ int main(int, char* []) {
 
     //FBO creation
     auto fbo = fboShadow.createShadowFBO();
+    auto fbo_post = postProcessFBO.createPostProcessFBO();
 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
@@ -367,14 +425,16 @@ int main(int, char* []) {
         srand(time(NULL));
 
         handleInput(deltaTime);
-        render(s_phong, s_depth, s_debug,
+        render(s_phong, s_depth, s_debug, s_post,
             d_background,
             d_bar,
             d_block,
             d_walls,
             d_ball,
             d_powerUp,
-            fbo.first, fbo.second);
+            quadPostProcess,
+            fbo.first, fbo.second,
+            std::get<0>(fbo_post), std::get<1>(fbo_post));
 
         if (!startGame && lifes>0) {
             ballPos = glm::vec3(barPos.x, barPos.y + 0.3f, barPos.z);
@@ -526,6 +586,10 @@ int main(int, char* []) {
     
     glDeleteFramebuffers(1, &fbo.first);
     glDeleteTextures(1, &fbo.second);
+
+    glDeleteFramebuffers(1, &std::get<0>(fbo_post));
+    glDeleteTextures(1, &std::get<1>(fbo_post));
+    glDeleteRenderbuffers(1, &std::get<2>(fbo_post));
 
     return 0;
 }
