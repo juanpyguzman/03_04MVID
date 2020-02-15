@@ -1,5 +1,6 @@
 #include "engine/material.hpp"
 
+Material::Material(){}
 
 Material::Material(const Texture& t_albedo, const Texture& t_specular, const Texture& t_normal, int shininess, const Shader& shader)
 	: _t_albedo(t_albedo), _t_specular(t_specular), _t_normal(t_normal), _shininess(shininess), _shader(shader) {

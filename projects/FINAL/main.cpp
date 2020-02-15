@@ -14,6 +14,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <ctime>
 
 #include "engine/camera.hpp"
 #include "engine/geometry/cube.hpp"
@@ -51,6 +52,16 @@ const uint32_t numberOfBlocks = 17;
 const uint32_t numberOfRows = 4;
 glm::vec3 blockPositions[4][17];
 bool destroyBlock[4][17];
+
+//PowerUps
+glm::vec3 powerUpPositions[4][17];
+glm::vec3 powerUpSize(0.4f, 0.15f, 0.15f);
+uint16_t random;
+uint16_t frequency = 10;
+bool createPowerUp[4][17];
+const float powerUpSpeed = 2.0f;
+float powerUpTime = float(clock());
+float maxPowerUpTime = 7.0f;
 
 //Bar
 glm::vec3 barPos(0.0f, -3.8f, 0.0f);
@@ -102,6 +113,7 @@ float lastX, lastY;
 bool firstMouse = true;
 
 bool startGame = false;
+
 
 void handleInput(float dt) {
     Input* input = Input::instance();
@@ -164,10 +176,15 @@ void onScrollMoved(float x, float y) {
 }
 
 void renderScene(const Shader& shader,
-    const Drawable& d_background, const Drawable& d_bar, const Drawable& d_ball) {
+    const Drawable& d_background, const Drawable& d_bar, const Drawable& d_block, const Drawable& d_walls, const Drawable& d_ball, const Drawable& d_powerUp) {
 
     //Fondo
     d_background.setDrawable(shader, glm::vec3(0.0f, 0.0f, -0.5f), 0.0f, glm::vec3(0.0f), glm::vec3(backGroundSize));
+
+    //Walls
+    d_walls.setDrawable(shader, glm::vec3(5.25f, 0.0f, -0.5f), 0.0f, glm::vec3(0.0f),glm::vec3(0.5f, 10.0f, 0.75f));
+    d_walls.setDrawable(shader, glm::vec3(-5.25f, 0.0f, -0.5f), 0.0f, glm::vec3(0.0f), glm::vec3(0.5f, 10.0f, 0.75f));
+    d_walls.setDrawable(shader, glm::vec3(0.0f, 4.5f, -0.5f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.5f, 10.0f, 0.75f));
 
     //Bar
     d_bar.setDrawable(shader, glm::vec3(barPos), 0.0f, glm::vec3(0.0f), glm::vec3(barSize));
@@ -176,7 +193,13 @@ void renderScene(const Shader& shader,
     for (int j = 0; j < numberOfRows; j++) {
         for (int i = 0; i < numberOfBlocks; i++) {
             if (!destroyBlock[j][i]) {
-                d_bar.setDrawable(shader, glm::vec3(blockPositions[j][i]), 0.0f, glm::vec3(0.0f), glm::vec3(blockSize));
+                d_block.setDrawable(shader, glm::vec3(blockPositions[j][i]), 0.0f, glm::vec3(0.0f), glm::vec3(blockSize));
+            }
+            else {
+                //PowerUp
+                if (createPowerUp[j][i]) {
+                    d_powerUp.setDrawable(shader, glm::vec3(powerUpPositions[j][i]), 0.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(powerUpSize));
+                }
             }
         };
     };
@@ -192,8 +215,8 @@ void renderScene(const Shader& shader,
     d_ball.setDrawable(shader, ballPos, static_cast<float>(glfwGetTime()), rotation, glm::vec3(ballRadius));
 }
 
-void render(const Shader& s_phong, const Shader& s_depth, const Shader& s_debug, const Shader& s_light,
-    const Drawable& d_background, const Drawable& d_bar, const Drawable& d_ball,
+void render(const Shader& s_phong, const Shader& s_depth, const Shader& s_debug,
+    const Drawable& d_background, const Drawable& d_bar, const Drawable& d_block, const Drawable& d_walls, const Drawable& d_ball, const Drawable& d_powerUp,
     const uint32_t fbo, const uint32_t fbo_texture) {
 
     //FIRST PASS
@@ -209,7 +232,7 @@ void render(const Shader& s_phong, const Shader& s_depth, const Shader& s_debug,
     s_depth.use();
     s_depth.set("lightSpaceMatrix", lightSpaceMatrix);
     //glCullFace(GL_FRONT);
-    renderScene(s_depth, d_background, d_bar, d_ball);
+    renderScene(s_depth, d_background, d_bar, d_block, d_walls, d_ball, d_powerUp);
     //glCullFace(GL_BACK);
 
     //SECOND PASS
@@ -242,7 +265,7 @@ void render(const Shader& s_phong, const Shader& s_depth, const Shader& s_debug,
     glBindTexture(GL_TEXTURE_2D, fbo_texture);
     s_phong.set("depthMap", 3);
 
-    renderScene(s_phong, d_background, d_bar, d_ball);
+    renderScene(s_phong, d_background, d_bar, d_block, d_walls, d_ball, d_powerUp);
 
     /*glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, Window::instance()->getWidth(), Window::instance()->getHeight());
@@ -265,25 +288,34 @@ int main(int, char* []) {
     const Shader s_phong("../projects/FINAL/phong.vs", "../projects/FINAL/blinn.fs");
     const Shader s_depth("../projects/FINAL/depth.vs", "../projects/FINAL/depth.fs");
     const Shader s_debug("../projects/FINAL/debug.vs", "../projects/FINAL/debug.fs");
-    const Shader s_light("../projects/FINAL/light.vs", "../projects/FINAL/light.fs");
 
     //Geometries
     const Quad quad(1.0f);
     const Cube cube(1.0f);
 
     //Background
-    const Texture t_albedo("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_basecolor.jpg", Texture::Format::RGB);
-    const Texture t_specular("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_metallic.jpg", Texture::Format::RGB);
-    const Texture t_normal("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_normal.jpg", Texture::Format::RGB);
-    Material material_background(t_albedo, t_specular, t_normal, 64, s_phong);
+    const Texture t_background_albedo("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_basecolor.jpg", Texture::Format::RGB);
+    const Texture t_background_specular("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_metallic.jpg", Texture::Format::RGB);
+    const Texture t_background_normal("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_normal.jpg", Texture::Format::RGB);
+    Material material_background(t_background_albedo, t_background_specular, t_background_normal, 64, s_phong);
     Drawable d_background(quad, material_background);
 
-    //Bar textures
-    const Texture t_bar_albedo("../assets/FINAL/textures/bar/Metal_Plate_041_basecolor.jpg", Texture::Format::RGB);
+    //Bar and blocks
+    const Texture t_block_albedo("../assets/FINAL/textures/bar/Metal_Plate_041_basecolor.jpg", Texture::Format::RGB);
+    const Texture t_bar_albedo("../assets/FINAL/textures/bar/Metal_Plate_041_basecolor_bar.jpg", Texture::Format::RGB);
     const Texture t_bar_specular("../assets/FINAL/textures/bar/Metal_Plate_041_metallic.jpg", Texture::Format::RGB);
     const Texture t_bar_normal("../assets/FINAL/textures/bar/Metal_Plate_041_normal.jpg", Texture::Format::RGB);
     Material material_bar(t_bar_albedo, t_bar_specular, t_bar_normal, 128, s_phong);
     Drawable d_bar(cube, material_bar);
+    Material material_block(t_block_albedo, t_bar_specular, t_bar_normal, 128, s_phong);
+    Drawable d_block(cube, material_block);
+
+    //Walls
+    const Texture t_walls_albedo("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_basecolor_WALLS.jpg", Texture::Format::RGB);
+    const Texture t_walls_specular("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_metallic_WALLS.jpg", Texture::Format::RGB);
+    const Texture t_walls_normal("../assets/FINAL/textures/bar/Sci-Fi_Wall_002_normal_WALLS.jpg", Texture::Format::RGB);
+    Material material_walls(t_walls_albedo, t_walls_specular, t_walls_normal, 64, s_phong);
+    Drawable d_walls(cube, material_walls);
 
     //Ball model
     const Model model_ball("../assets/FINAL/models/ball/sci_fi_ball.obj");
@@ -293,6 +325,14 @@ int main(int, char* []) {
     const Texture t_ball_normal("../assets/FINAL/models/ball/textures/sci_fi_ball_normal.png", Texture::Format::RGB);
     Material material_ball(t_ball_albedo, t_bar_specular, t_bar_normal, 32, s_phong);
     Drawable d_ball(model_ball, material_ball);
+
+    //PowerUp
+    //const Model powerUp("../assets/FINAL/models/powerUps/airCapsula.fbx");
+    const Texture t_powerUp_albedo("../assets/FINAL/models/powerUps/textures/TexturesCom_Slime_512_albedo.jpg", Texture::Format::RGB);
+    const Texture t_powerUp_specular("../assets/FINAL/models/powerUps/textures/TexturesCom_Slime_512_height.jpg", Texture::Format::RGB);
+    const Texture t_powerUp_normal("../assets/FINAL/models/powerUps/textures/TexturesCom_Slime_512_normal.jpg", Texture::Format::RGB);
+    Material material_powerUp(t_powerUp_albedo, t_powerUp_specular, t_powerUp_normal, 32, s_phong);
+    Drawable d_powerUp(cube, material_powerUp);
 
     //FBO creation
     auto fbo = fboShadow.createShadowFBO();
@@ -308,25 +348,40 @@ int main(int, char* []) {
     for (int j = 0; j < numberOfRows; j++) {
         for (int i = 0; i < numberOfBlocks; i++) {
             blockPositions[j][i] = glm::vec3(-backGroundSize.x / 2.0f + (i + 2) * blockSize.x, blockPos.y - j * blockSize.y, 0.0f);
+            powerUpPositions[j][i] = blockPositions[j][i];
             destroyBlock[j][i] = false;
+            createPowerUp[j][i] = false;
         };
     };
 
+    //Console messages
+    std::cout << "Arkanoid" << std::endl;
+    std::cout << "Pulse space bar to start" << std::endl;
+    std::cout << lifes << " lifes remaining" << std::endl;
 
     while (window->alive()) {
         const float currentFrame = glfwGetTime();
         const float deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        srand(time(NULL));
+
         handleInput(deltaTime);
-        render(s_phong, s_depth, s_debug, s_light,
+        render(s_phong, s_depth, s_debug,
             d_background,
             d_bar,
+            d_block,
+            d_walls,
             d_ball,
+            d_powerUp,
             fbo.first, fbo.second);
 
         if (!startGame && lifes>0) {
             ballPos = glm::vec3(barPos.x, barPos.y + 0.3f, barPos.z);
+        }
+
+        if (!startGame && lifes == 0) {
+            std::cout << "GAME OVER" << std::endl;
         }
 
         if (startGame) {
@@ -335,6 +390,13 @@ int main(int, char* []) {
                 startGame = false;
                 k_ballSpeed.y = -1.0 * k_ballSpeed.y;
                 lifes--;
+                std::cout << lifes << " lifes remaining" << std::endl;
+                //Destruimos los PowerUp
+                for (int j = 0; j < numberOfRows; j++) {
+                    for (int i = 0; i < numberOfBlocks; i++) {
+                        createPowerUp[j][i] = false;
+                    }
+                }
             }
 
             //Ball movement
@@ -363,32 +425,75 @@ int main(int, char* []) {
                         if (ballPos.x <= blockPositions[j][i].x + blockSize.x / 2.0f && ballPos.x >= blockPositions[j][i].x - blockSize.x / 2.0f) {
                             k_ballSpeed.y = -ballSpeedY;
                             destroyBlock[j][i] = true;
+                            
+                            random = rand() % (frequency);
+                            if (random==0) {
+                                createPowerUp[j][i] = true;
+                            }
                         }
 
                         else if (rightDistance_BlockBall < 0.05f && destroyBlock[j][i] != true) {
                             k_ballSpeed.x = ballSpeedX;
                             destroyBlock[j][i] = true;
+                            
+                            random = rand() % (frequency);
+                            if (random == 0) {
+                                createPowerUp[j][i] = true;
+                            }
                         }
 
                         else if (leftDistance_BlockBall < 0.05f && destroyBlock[j][i] != true) {
                             k_ballSpeed.x = -ballSpeedX;
                             destroyBlock[j][i] = true;
+
+                            random = rand() % (frequency);
+                            if (random == 0) {
+                                createPowerUp[j][i] = true;
+                            }
                         }
                     }
                     if (topDistance_BlockBall < 0.05f && destroyBlock[j][i] != true) {
                         if (ballPos.x <= blockPositions[j][i].x + blockSize.x / 2.0f && ballPos.x >= blockPositions[j][i].x - blockSize.x / 2.0f) {
                             k_ballSpeed.y = ballSpeedY;
                             destroyBlock[j][i] = true;
+
+                            random = rand() % (frequency);
+                            if (random == 0) {
+                                createPowerUp[j][i] = true;
+                            }
                         }
 
                         else if (rightDistance_BlockBall < 0.05f && destroyBlock[j][i] != true) {
                             k_ballSpeed.x = ballSpeedX;
                             destroyBlock[j][i] = true;
+
+                            random = rand() % (frequency);
+                            if (random == 0) {
+                                createPowerUp[j][i] = true;
+                            }
                         }
 
                         else if (leftDistance_BlockBall < 0.05f && destroyBlock[j][i] != true) {
                             k_ballSpeed.x = -ballSpeedX;
                             destroyBlock[j][i] = true;
+
+                            random = rand() % (frequency);
+                            if (random == 0) {
+                                createPowerUp[j][i] = true;
+                            }
+                        }
+                    }
+                    if (createPowerUp[j][i]) {
+                        powerUpPositions[j][i] += glm::vec3(0.0f, -deltaTime * powerUpSpeed, 0.0f);
+                        float distance_BarPowerUp = (powerUpPositions[j][i].y - powerUpSize.y/2.0f) - (barPos.y + barSize.y / 2.0f);
+                        if (distance_BarPowerUp < 0.01f) {
+                            if (powerUpPositions[j][i].x - powerUpSize.x / 2.0f <= barPos.x + barSize.x / 2.0f
+                                && powerUpPositions[j][i].x + powerUpSize.x / 2.0f >= barPos.x - barSize.x / 2.0f
+                                && powerUpPositions[j][i].y > barPos.y - barSize.y / 2.0f) {
+                                createPowerUp[j][i]=false;
+                                barSize.x = 1.5f;
+                                powerUpTime = float(clock());
+                            }
                         }
                     }
                 };
@@ -409,6 +514,10 @@ int main(int, char* []) {
             else if (ballPos.x >= backGroundSize.x / 2.0f - ballRadius * 2.0f)
             {
                 k_ballSpeed.x = -ballSpeedX;
+            }
+            //Final del efecto del PowerUp
+            if ((float(clock())-powerUpTime) / CLOCKS_PER_SEC >= maxPowerUpTime) {
+                barSize.x = 1.0f;
             }
         }
      

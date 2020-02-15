@@ -7,6 +7,7 @@
 class Material {
 
 	public:
+		Material();
 		Material(const Texture& t_albedo, const Texture& t_specular, const Texture& t_normal, int shininess, const Shader& shader);
 		void setMaterial() const;
 

@@ -13,6 +13,7 @@ class Drawable {
 public:
 	Drawable(const Geometry& object, const Material& material);
 	Drawable(const Model& object, const Material& material);
+	Drawable(const Model& object);
 	void setDrawable(const Shader& shader, glm::vec3 position, float angle, glm::vec3 rotation, glm::vec3 scale) const;
 
 
@@ -23,6 +24,7 @@ private:
 	Model _model;
 	bool _isGeometry;
 	bool _isModel;
+	bool _textureInside;
 
 
 };
