@@ -199,7 +199,7 @@ void renderScene(const Shader& shader,
             else {
                 //PowerUp
                 if (createPowerUp[j][i]) {
-                    d_powerUp.setDrawable(shader, glm::vec3(powerUpPositions[j][i]), 0.0f, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(powerUpSize));
+                    d_powerUp.setDrawable(shader, glm::vec3(powerUpPositions[j][i]), glm::radians(90.0f)*static_cast<float>(glfwGetTime()), glm::vec3(powerUpSpeed, 0.0f, 0.0f), glm::vec3(powerUpSize));
                 }
             }
         };
